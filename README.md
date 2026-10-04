@@ -12,13 +12,10 @@
 <hr>
 
 ## Последние обновления
-* **2026/06** — GigaAM Multilingual: энкодеры 220M / 600M, предобучение на **2M часов** и **70+ языках**; посимвольный CTC ASR с лучшим WER на русском, казахском, киргизском и узбекском (умеренно на английском). Наша [научная статья](https://arxiv.org/abs/2607.10371) принята на InterSpeech 2026!
 * **2026/04** — [дообучение моделей](#дообучение-моделей) (CTC / RNNT), таймстемпы на уровне слов, [Triton Inference Server](#triton-inference-server-и-tensorrt)
 * **2025/11** — GigaAM-v3: снижение WER на **30%** на новых доменах данных; GigaAM-v3-e2e: end-to-end распознавание речи (**70:30** в side-by-side сравнении против Whisper-large-v3)
 * **2025/06** — Наша [научная статья о GigaAM](https://arxiv.org/abs/2506.01192) принята на InterSpeech 2025!
-* **2024/12** — GigaAM-v2 (**снижение WER на 15% и 12%** для CTC и RNN-T моделей), [поддержка экспорта в ONNX](#конвертация-в-onnx-и-использование-графа)
-* **2024/05** — GigaAM-RNNT (**снижение WER на 19%**), [распознавание речи на длинных аудиозаписях с помощью внешней VAD-модели](#основные-функции)
-* **2024/04** — Релиз GigaAM: GigaAM-CTC ([Лучшая открытая модель для распознавания речи на русском языке](#качество-моделей)), [GigaAM-Emo](#качество-моделей)
+* **2024/05** — [Поддержка распознавания речи на длинных аудиозаписях с помощью внешней VAD-модели](#основные-функции)
 
 ---
 
@@ -47,21 +44,17 @@ pytest -v tests/test_loading.py -m partial  # или `-m full` для тести
 
 ## Обзор GigaAM
 
-GigaAM - фундаментальная акустическая модель на базе архитектуры [Conformer](https://arxiv.org/pdf/2005.08100.pdf) (220M–600M параметров), предобученная на разнообразных речевых данных — русскоязычных для линеек `v1`–`v3` и на 70+ языках для линейки `multilingual`. Она служит основой для всего семейства GigaAM и обеспечивает высокое качество при дообучении на задачи распознавания речи и распознавания эмоций. Для задач автоматического распознавания речи (ASR) мы дообучили энкодер GigaAM с декодерами на основе [CTC](https://www.cs.toronto.edu/~graves/icml_2006.pdf) и [RNNT](https://arxiv.org/abs/1211.3711). Семейство GigaAM включает четыре линейки моделей:
+GigaAM - акустическая модель на базе архитектуры [Conformer](https://arxiv.org/pdf/2005.08100.pdf) (~220M параметров), предобученная на русскоязычных речевых данных. Она служит основой для всего семейства GigaAM и обеспечивает высокое качество при дообучении на задачи распознавания речи. Для задач автоматического распознавания речи (ASR) мы дообучили энкодер GigaAM с декодерами на основе [CTC](https://www.cs.toronto.edu/~graves/icml_2006.pdf) и [RNNT](https://arxiv.org/abs/1211.3711). Доступна одна линейка моделей:
 
 | | Метод предобучения | Объём предобучения (часы) | Объём данных ASR (часы) | Доступные версии |
 | :--- | :--- | :--- | :--- | :---: |
-| **v1** | [Wav2vec 2.0](https://arxiv.org/abs/2006.11477) | 50 000 | 2 000 | `v1_ssl`, `emo`, `v1_ctc`, `v1_rnnt` |
-| **v2** | [HuBERT–CTC](https://arxiv.org/abs/2506.01192) | 50 000 | 2 000 | `v2_ssl`, `v2_ctc`, `v2_rnnt` |
 | **v3** | HuBERT–CTC | 700 000 | 4 000 | `v3_ssl`, `v3_ctc`, `v3_rnnt`, `v3_e2e_ctc`, `v3_e2e_rnnt` |
-| **multilingual** | HuBERT–style | 2 000 000 | 50 000 | `multilingual_ssl`, `multilingual_large_ssl`, `multilingual_ctc`, `multilingual_large_ctc` |
 
 Версии `v3_e2e_ctc` и `v3_e2e_rnnt` поддерживают пунктуацию и нормализацию текста.
-Линейка `multilingual_*` предоставляет SSL-энкодеры на 220M / 600M параметров и посимвольные CTC-модели ASR с поддержкой нескольких языков.
 
 ## Качество моделей
 
-В обучение `GigaAM-v3` были включены новые внутренние наборы данных: колл-центр, музыка, речь с атипичными характеристиками и голосовые сообщения. В результате модели в среднем демонстрируют улучшение на **30%** (по метрике WER) на новых доменах при уровне качества `GigaAM-v2` на публичных бенчмарках. В сравнении end-to-end моделей (`e2e_ctc` и `e2e_rnnt`) с Whisper (оценка проводилась с использованием внешней LLM в формате side-by-side) модели GigaAM выигрывают в соотношении **70:30**. Наша модель распознавания эмоций `GigaAM-Emo` превосходит существующие аналоги на **15%** по метрике Macro F1-Score.
+В обучение `GigaAM-v3` были включены новые внутренние наборы данных: колл-центр, музыка, речь с атипичными характеристиками и голосовые сообщения. В результате модели в среднем демонстрируют улучшение на **30%** (по метрике WER) на новых доменах данных. В сравнении end-to-end моделей (`e2e_ctc` и `e2e_rnnt`) с Whisper (оценка проводилась с использованием внешней LLM в формате side-by-side) модели GigaAM выигрывают в соотношении **70:30**.
 
 ---
 
@@ -96,7 +89,7 @@ audio_path = gigaam.utils.download_short_audio()
 long_audio_path = gigaam.utils.download_long_audio()
 
 # Аудио-эмбеддинги
-model_name = "v3_ssl"       # Варианты: `v1_ssl`, `v2_ssl`, `v3_ssl`, `multilingual_ssl`, `multilingual_large_ssl`
+model_name = "v3_ssl"       # Единственный вариант ssl-энкодера
 model = gigaam.load_model(model_name)
 embedding, _ = model.embed_audio(audio_path)
 print(embedding)
@@ -118,11 +111,6 @@ os.environ["HF_TOKEN"] = "<HF_TOKEN с доступом на чтение к 'py
 result = model.transcribe_longform(long_audio_path)
 for segment in result:
    print(f"[{gigaam.format_time(segment.start)} - {gigaam.format_time(segment.end)}]: {segment.text}")
-
-# Распознавание эмоций
-model = gigaam.load_model("emo")
-emotion2prob = model.get_probs(audio_path)
-print(", ".join([f"{emotion}: {prob:.3f}" for emotion, prob in emotion2prob.items()]))
 ```
 
 ### Загрузка из Hugging Face
@@ -133,8 +121,6 @@ print(", ".join([f"{emotion}: {prob:.3f}" for emotion, prob in emotion2prob.item
 from transformers import AutoModel
 
 model = AutoModel.from_pretrained("ai-sage/GigaAM-v3", revision="e2e_rnnt", trust_remote_code=True)
-
-model = AutoModel.from_pretrained("ai-sage/GigaAM-Multilingual", revision="ctc", trust_remote_code=True)
 ```
 
 ### Конвертация в ONNX и использование графа
@@ -156,7 +142,7 @@ model = AutoModel.from_pretrained("ai-sage/GigaAM-Multilingual", revision="ctc",
 
    sessions, model_cfg = load_onnx(onnx_dir, model_version)
    result = infer_onnx([audio_path], model_cfg, sessions)
-   print(result[0])  # str для ctc / rnnt версий, np.ndarray для ssl / emo
+    print(result[0])  # str для ctc / rnnt версий, np.ndarray для ssl
 
    # или для целого датасета
    texts = infer_onnx("/path/to/eval/manifest.tsv", model_cfg, sessions)
@@ -173,19 +159,9 @@ model = AutoModel.from_pretrained("ai-sage/GigaAM-Multilingual", revision="ctc",
 
 ## Citation
 
-Если применяете GigaAM в своих исследованиях, используйте ссылки на наши статьи:
+Если применяете GigaAM в своих исследованиях, используйте ссылку на нашу статью:
 
 ```bibtex
-@misc{gigaam_multilingual,
-      title={GigaAM Multilingual: Foundation Model for Underrepresented Languages}, 
-      author={Andrei Kuzmenko and Alexandr Maximenko and Aleksandr Kutsakov and Georgii Gospodinov and Dmitrii Bolotov and Oleg Kutuzov and Pavel Bogomolov and Fyodor Minkin},
-      year={2026},
-      eprint={2607.10371},
-      archivePrefix={arXiv},
-      primaryClass={eess.AS},
-      url={https://arxiv.org/abs/2607.10371}
-}
-
 @inproceedings{kutsakov25_interspeech,
   title     = {{GigaAM: Efficient Self-Supervised Learner for Speech Recognition}},
   author    = {Aleksandr Kutsakov and Alexandr Maximenko and Georgii Gospodinov and Pavel Bogomolov and Fyodor Minkin},
@@ -198,7 +174,6 @@ model = AutoModel.from_pretrained("ai-sage/GigaAM-Multilingual", revision="ctc",
 ```
 
 ## Ссылки
-* [[arxiv] GigaAM Multilingual: Foundation Model for Underrepresented Languages](https://arxiv.org/abs/2607.10371)
 * [[arxiv] GigaAM: Efficient Self-Supervised Learner for Speech Recognition](https://arxiv.org/abs/2506.01192)
 * [[habr] GigaAM-v3: открытая SOTA-модель распознавания речи на русском](https://habr.com/ru/companies/sberdevices/articles/973160/)
 * [[habr] GigaAM: класс открытых моделей для обработки звучащей речи](https://habr.com/ru/companies/sberdevices/articles/805569)

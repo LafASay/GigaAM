@@ -1,4 +1,3 @@
-import logging
 import warnings
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Union
@@ -188,17 +187,9 @@ def infer_onnx(
     Возвращает
     -------
     Union[List[str], np.ndarray, List[np.ndarray]]
-        Список текстов (ASR) / вероятностей (Emo) / массивов (SSL) для каждого сэмпла.
+        Список текстов (ASR) / массивов (SSL) для каждого сэмпла.
     """
     model_name = model_cfg.model_name
-
-    if any(s in model_name for s in ["v1", "v2", "emo"]) and batch_size > 32:
-        logging.warning(
-            f"Batch size {batch_size} can be too large for v1/v2-family models. "
-            "This value can cause CUDA/cuDNN errors in Conv2d subsampling. "
-            "Forcing batch size to 32."
-        )
-        batch_size = 32
 
     if preprocessor is None:
         preprocessor = hydra.utils.instantiate(model_cfg.preprocessor)
@@ -218,15 +209,13 @@ def infer_onnx(
         num_workers=num_workers,
     )
     loader_iter = (
-        tqdm(loader, desc="Inference")
-        if progress and ("emo" in model_name or "ssl" in model_name)
-        else loader
+        tqdm(loader, desc="Inference") if progress and "ssl" in model_name else loader
     )
 
     enc_sess = sessions[0]
     dtype = _session_float_dtype(enc_sess)
 
-    if "emo" in model_name or "ssl" in model_name:
+    if "ssl" in model_name:
         outputs = []
         for wavs, wav_lens in loader_iter:
             input_signal, input_lengths = preprocessor(wavs.float(), wav_lens)
@@ -299,7 +288,7 @@ def load_onnx(
 ]:
     """
     Загружает модель GigaAM в ONNX Runtime по заданной версии модели.
-    Поддерживает любые семейства моделей (ASR, Emo, SSL).
+    Поддерживает любые семейства моделей (ASR, SSL).
     """
     providers = _providers_list(provider)
 

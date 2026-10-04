@@ -2,7 +2,6 @@ import logging
 
 import pytest
 import torch
-from torch.nn.functional import softmax
 
 import gigaam
 from gigaam.utils import AudioDataset, download_short_audio
@@ -17,27 +16,19 @@ def test_audio():
     return download_short_audio()
 
 
-@pytest.mark.parametrize("revision", ["emo"])
+@pytest.mark.parametrize("revision", ["v3_ssl"])
 def test_torchaudio_loading(revision, test_audio):
-    """Волна, загруженная через torchaudio, должна совпадать с get_probs(path) (ffmpeg load_audio)."""
+    """Волна, загруженная через torchaudio, должна совпадать с embed_audio(path) (ffmpeg load_audio)."""
     model = gigaam.load_model(revision)
     wav_tns = AudioDataset([test_audio])[0]
     lengths = torch.full([1], wav_tns.shape[-1], device=model._device)
     with torch.no_grad():
-        encoded, _ = model(
+        orig_embed = model.embed_audio(test_audio)[0]
+        manual_embed, _ = model(
             wav_tns.unsqueeze(0).to(model._device).to(model._dtype), lengths
         )
-        orig_probs = model.get_probs(test_audio)
-        pred_probs = (
-            softmax(model.head(encoded.mean(dim=-1)), dim=-1).squeeze().cpu().tolist()
-        )
-        pred_probs = {
-            model.id2name[i]: pred_probs[i] for i in range(len(model.id2name))
-        }
-        are_close = max(abs(pred_probs[k] - orig_probs[k]) for k in orig_probs) < 1e-3
-        assert (
-            are_close
-        ), f"Emotions with torchaudio failed: {orig_probs} != {pred_probs}"
+        diff = (orig_embed - manual_embed).abs().mean().item()
+        assert diff < 1e-2, f"Embeddings with torchaudio failed: mean abs diff {diff}"
 
 
 if __name__ == "__main__":

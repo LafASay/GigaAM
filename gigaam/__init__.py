@@ -10,14 +10,13 @@ import torch
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
-from .model import GigaAM, GigaAMASR, GigaAMEmo
+from .model import GigaAM, GigaAMASR
 from .preprocess import load_audio
 from .utils import format_time, normalize_raw_text
 
 __all__ = [
     "GigaAM",
     "GigaAMASR",
-    "GigaAMEmo",
     "load_audio",
     "format_time",
     "load_model",
@@ -30,22 +29,11 @@ _CACHE_DIR = os.path.expanduser("~/.cache/gigaam")
 _URL_DIR = "https://cdn.chatwm.opensmodel.sberdevices.ru/GigaAM"
 _DOWNLOAD_RETRIES = 3
 _MODEL_HASHES = {
-    "emo": "7ce76f9535cb254488985057c0d33006",
-    "v1_ctc": "f027f199e590a391d015aeede2e66174",
-    "v1_rnnt": "02c758999bcdc6afcb2087ef256d47ef",
-    "v1_ssl": "dc7f7b231f7f91c4968dc21910e7b396",
-    "v2_ctc": "e00f59cb5d39624fb30d1786044795bf",
-    "v2_rnnt": "547460139acfebd842323f59ed54ab54",
-    "v2_ssl": "cd4cf819c8191a07b9d7edcad111668e",
     "v3_ctc": "73413e7be9c6a5935827bfab5c0dd678",
     "v3_rnnt": "0fd2c9a1ff66abd8d32a3a07f7592815",
     "v3_e2e_ctc": "367074d6498f426d960b25f49531cf68",
     "v3_e2e_rnnt": "2730de7545ac43ad256485a462b0a27a",
     "v3_ssl": "70cbf5ed7303a0ed242ddb257e9dc6a6",
-    "multilingual_ctc": "5379d887c53ccd9cb95981e2a1832720",
-    "multilingual_ssl": "af54fed7a0337eeae7c4a25b2f8779c8",
-    "multilingual_large_ctc": "79a9adde50dd7f35bbf70927cb6557d0",
-    "multilingual_large_ssl": "2ef65a2ca413f6e1f99a4df0e86c1cee",
 }
 
 
@@ -113,7 +101,7 @@ def _download_model(model_name: str, download_root: str) -> Tuple[str, str]:
 
 def _download_tokenizer(model_name: str, download_root: str) -> Optional[str]:
     """При необходимости скачивает токенизатор и возвращает путь к нему."""
-    if model_name != "v1_rnnt" and "e2e" not in model_name:
+    if "e2e" not in model_name:
         return None  # No tokenizer required for this model
 
     tokenizer_url = f"{_URL_DIR}/{model_name}_tokenizer.model"
@@ -136,10 +124,10 @@ def _apply_flash_policy(cfg, use_flash: Optional[bool], device_obj: torch.device
 
 
 def _finalize_model(
-    model: Union["GigaAM", "GigaAMEmo", "GigaAMASR"],
+    model: Union["GigaAM", "GigaAMASR"],
     fp16_encoder: bool,
     device_obj: torch.device,
-) -> Union["GigaAM", "GigaAMEmo", "GigaAMASR"]:
+) -> Union["GigaAM", "GigaAMASR"]:
     """Общий финал загрузки: режим eval, опциональный fp16-энкодер, целевое устройство."""
     model = model.eval()
     if fp16_encoder and device_obj.type != "cpu":
@@ -163,7 +151,7 @@ def load_model(
     use_flash: Optional[bool] = False,
     device: Optional[Union[str, torch.device]] = None,
     download_root: Optional[str] = None,
-) -> Union[GigaAM, GigaAMEmo, GigaAMASR]:
+) -> Union[GigaAM, GigaAMASR]:
     """
     Загружает модель GigaAM по имени или локальный ``.ckpt`` после файнтюна.
 
@@ -233,8 +221,6 @@ def load_model(
 
     if "ssl" in model_name:
         model = GigaAM(checkpoint["cfg"])
-    elif "emo" in model_name:
-        model = GigaAMEmo(checkpoint["cfg"])
     else:
         model = GigaAMASR(checkpoint["cfg"])
 

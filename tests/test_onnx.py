@@ -22,8 +22,7 @@ def test_audio():
 @pytest.mark.parametrize(
     "revision, export_dtype",
     [
-        ("emo", torch.float32),
-        ("v2_ssl", torch.float16),
+        ("v3_ssl", torch.float16),
         ("v3_ctc", torch.float16),
         ("v3_e2e_rnnt", torch.float32),
     ],
@@ -52,19 +51,6 @@ def test_onnx_converting(revision, export_dtype, test_audio):
         for i in range(2):
             diff = np.abs(orig_embed - result[i]).mean()
             assert diff < tol, f"{revision}[{i}]: ONNX embed diff {diff}"
-
-    elif "emo" in revision:
-        orig_probs = model.get_probs(test_audio)
-        tol = 1e-3 if export_dtype == torch.float16 else 1e-4
-        for i in range(2):
-            r = result[i]
-            assert isinstance(r, np.ndarray), f"{revision}[{i}]: expected ndarray"
-            pred_probs = {
-                model.id2name[j]: float(r[j]) for j in range(len(model.id2name))
-            }
-            assert all(
-                abs(orig_probs[em] - pred_probs[em]) < tol for em in orig_probs
-            ), f"{revision}[{i}]: ONNX emo probs failed: {pred_probs}"
 
     else:
         orig_text = model.transcribe(test_audio).text

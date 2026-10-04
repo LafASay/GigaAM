@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import hydra
 import omegaconf
@@ -258,61 +258,3 @@ class GigaAMASR(GigaAM):
                         Segment(text=text, start=seg_start, end=seg_end)
                     )
         return LongformTranscriptionResult(segments=result_segments)
-
-
-class GigaAMEmo(GigaAM):
-    """
-    Giga Acoustic Model для распознавания эмоций
-    """
-
-    def __init__(self, cfg: omegaconf.DictConfig):
-        super().__init__(cfg)
-        self.head = hydra.utils.instantiate(self.cfg.head)
-        self.id2name = cfg.id2name
-
-    def get_probs(self, wav_file: str) -> Dict[str, float]:
-        """
-        Вычисляет вероятности для каждого класса эмоций по заданному аудиофайлу.
-        """
-        wav, length = self.prepare_wav(wav_file)
-        encoded, _ = self.forward(wav, length)
-        encoded_pooled = nn.functional.avg_pool1d(
-            encoded, kernel_size=encoded.shape[-1]
-        ).squeeze(-1)
-
-        logits = self.head(encoded_pooled)[0]
-        probs = nn.functional.softmax(logits, dim=-1).detach().tolist()
-
-        return {self.id2name[i]: probs[i] for i in range(len(self.id2name))}
-
-    def forward_for_export(self, features: Tensor, feature_lengths: Tensor) -> Tensor:
-        """
-        Прямой проход энкодер-декодер для сохранения модели целиком в формате onnx.
-        """
-        encoded, _ = self.encoder(features, feature_lengths)
-        enc_pooled = encoded.mean(dim=-1)
-        return nn.functional.softmax(self.head(enc_pooled), dim=-1)
-
-    def _to_onnx(self, dir_path: str = ".", dtype: torch.dtype = torch.float32) -> None:
-        """
-        Экспортирует ONNX Emo-модели.
-        """
-        saved_forward = self.forward
-        self.forward = self.forward_for_export  # type: ignore[assignment, method-assign]
-        try:
-            onnx_converter(
-                model_name=self.cfg.model_name,
-                out_dir=dir_path,
-                module=self,
-                inputs=self.encoder.input_example(),
-                input_names=["features", "feature_lengths"],
-                output_names=["probs"],
-                dynamic_axes={
-                    "features": {0: "batch_size", 2: "seq_len"},
-                    "feature_lengths": {0: "batch_size"},
-                    "probs": {0: "batch_size", 1: "seq_len"},
-                },
-                export_dtype=dtype,
-            )
-        finally:
-            self.forward = saved_forward  # type: ignore[assignment, method-assign]
