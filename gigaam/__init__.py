@@ -138,7 +138,12 @@ def _finalize_model(
 def _normalize_device(device: Optional[Union[str, torch.device]]) -> torch.device:
     """Приводит параметр устройства к torch.device."""
     if device is None:
-        device_str = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            device_str = "cuda"
+        elif torch.backends.mps.is_available():
+            device_str = "mps"
+        else:
+            device_str = "cpu"
         return torch.device(device_str)
     if isinstance(device, str):
         return torch.device(device)
@@ -165,7 +170,8 @@ def load_model(
         Использовать ли flash_attn, если модель это позволяет (требуется установленная библиотека flash_attn).
         По умолчанию False.
     device : Optional[Union[str, torch.device]]
-        Устройство, на которое загрузить модель. По умолчанию "cuda", если доступно, иначе "cpu".
+        Устройство, на которое загрузить модель. По умолчанию "cuda", если
+        доступно, затем "mps", иначе "cpu".
     download_root : Optional[str]
         Каталог для скачивания модели. По умолчанию "~/.cache/gigaam".
     """

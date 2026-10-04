@@ -42,7 +42,7 @@ def custom_forward(model, features, feature_lengths):
         if model._device.type == "cpu":
             of, ol = model.encoder.pre_encode(of.transpose(1, 2), ol)
         else:
-            with torch.autocast(device_type="cuda"):
+            with torch.autocast(device_type=model._device.type):
                 of, ol = model.encoder.pre_encode(of.transpose(1, 2), ol)
         out_feat.append(of.transpose(1, 2))
         out_lns.append(ol.item())

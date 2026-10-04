@@ -11,7 +11,7 @@
 
 ## Команды
 
-Lint должен точно совпадать с флагами CI — **файла конфигурации** для flake8/mypy нет; флаги живут только в `.github/workflows/gigaam.yml`:
+Lint должен точно совпадать с флагами CI — **файла конфигурации** для flake8/mypy нет; флаги живут только в `.github/workflows/gigaam.yml` (примечание: YAML воркфлоу сейчас не парсится — копируйте флаги дословно). Версии линтеров — extra `[lint]` (black==26.1.0, isort==7.0.0, flake8==7.3.0):
 
 ```bash
 black --check --diff gigaam/ tests/          # line-length 88 (pyproject)
@@ -22,19 +22,21 @@ mypy gigaam/ --ignore-missing-imports --no-strict-optional   # только giga
 
 ## Тесты
 
-Большинство тестов скачивают реальные чекпойнты (~ГБ) с CDN Сбера в `~/.cache/gigaam` и тестовые WAV через `wget` — нужен интернет, работа занимает минуты:
+Большинство тестов скачивают реальные чекпойнты (~ГБ) с CDN Сбера в `~/.cache/gigaam`, а тестовые WAV — через `wget` в текущий каталог (`example.wav`/`long_example.wav`) — нужен интернет, работа занимает минуты:
 
-- Быстро/офлайн: `pytest -v tests/test_normalize.py` (чистая нормализация текста, без скачиваний).
+- Быстро/офлайн: `pytest -v tests/test_normalize.py` (чистая нормализация текста, без скачиваний; нужен extra `[tests]`).
 - Дефолт CI: `pytest -v tests/test_loading.py -m partial` — облегчённое подмножество.
 - `-m full` скачивает **каждый** чекпойнт (очень медленно, много места на диске; после использования удаляет каждый ckpt).
 - CI запускает каждый файл отдельно: `test_reading`, `test_batching`, `test_longform` (нужен HF_TOKEN), `test_onnx`, `test_timestamps`.
 - Особенности ONNX/GPU проверяются в `test_onnx.py`; CI работает на CPU, поэтому никогда не предполагайте CUDA в тестах.
+- Тесты сверяют точные строки транскрипций/нормализации (`_predictions` в `test_loading.py`, `test_normalize.py`) — любые правки нормализации/декодирования не должны ломать эти эталоны.
 
 ## Архитектура / ловушки
 
-- Точка входа: `gigaam.load_model(name)` (`gigaam/__init__.py`) — принимает ревизию модели (`v3_*`, см. `_MODEL_HASHES`) **или локальный путь `.ckpt`** после файнтюна. Поддержка v1/v2/emo/multilingual удалена.
+- Точка входа: `gigaam.load_model(name)` (`gigaam/__init__.py`) — принимает ревизию модели (`v3_*`, см. `_MODEL_HASHES`) или короткий алиас (`ctc`, `rnnt`, `e2e_ctc`, `e2e_rnnt`, `ssl`) **или локальный путь `.ckpt`** после файнтюна. Поддержка v1/v2/emo/multilingual удалена.
 - Иерархия классов: `GigaAM` (только SSL-энкодер) → `GigaAMASR` (+ голова/декодирование). Веса проверяются контрольной суммой md5 — никогда не обходите валидацию `_MODEL_HASHES`.
 - `model.transcribe()` бросает исключение для аудио > 25 с (`LONGFORM_THRESHOLD`); длинное аудио должно идти через `transcribe_longform()` (сегментация через VAD pyannote).
+- Официально код рассчитан на CPU/CUDA, но MPS тоже поддержан: `_normalize_device` (`gigaam/__init__.py`) автовыбирает `cuda → mps → cpu`, а `test_batching` использует `device_type=model._device.type`. На Apple Silicon отмечено: fp16-энкодер, транскрипция/word_timestamps/longform совпадают с эталоном.
 - `to_onnx` по умолчанию экспортирует в fp32; для GPU-инференса передавайте `dtype=torch.float16`. Экспорт приводит модуль к нужному типу, а затем возвращает `module.float()`.
 - Фикс паддинга сабсэмплинг-свёртки (`StridingSubsampling._mask_time` в `gigaam/encoder.py`) сохраняет батчевый выход равным выходу с батчем размера 1 — test_batching зависит от него; не удаляйте.
 
