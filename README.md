@@ -2,7 +2,7 @@
 
 <div align="center" style="line-height: 1;">
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![arXiv](https://img.shields.io/badge/arXiv-2506.01192-b31b1b.svg)](https://arxiv.org/abs/2506.01192)
 [![HuggingFace](https://img.shields.io/badge/🤗%20HuggingFace-Models-yellow.svg)](https://huggingface.co/collections/ai-sage/gigaam)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/salute-developers/GigaAM/blob/main/colab_example.ipynb)
@@ -22,7 +22,7 @@
 ## Установка
 
 ### Требования
-- Python ≥ 3.10
+- Python ≥ 3.13
 - [ffmpeg](https://ffmpeg.org/) установлен и добавлен в переменную PATH системы
 
 ### Установка пакета GigaAM
