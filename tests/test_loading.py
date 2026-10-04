@@ -4,7 +4,6 @@ import os
 import pytest
 
 import gigaam
-from gigaam.utils import download_short_audio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,12 +13,6 @@ _predictions = {
     "v3_e2e_ctc": "Ничьих, не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть украдкой На песни грешные мои. У лукоморья дуб зелёный.",  # noqa: E501
     "v3_e2e_rnnt": "Ничьих не требуя похвал, Счастлив уж я надеждой сладкой, Что дева с трепетом любви Посмотрит, может быть, украдкой На песни грешные мои. У лукоморья дуб зелёный.",  # noqa: E501
 }
-
-
-@pytest.fixture(scope="session")
-def test_audio():
-    """Предоставляет тестовый аудиофайл для всех тестов"""
-    return download_short_audio()
 
 
 def run_model_method(model, revision, test_audio):

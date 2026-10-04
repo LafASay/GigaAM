@@ -22,11 +22,12 @@ mypy gigaam/ --ignore-missing-imports --no-strict-optional   # только giga
 
 ## Тесты
 
-Большинство тестов скачивают реальные чекпойнты (~ГБ) с CDN Сбера в `~/.cache/gigaam`, а тестовые WAV — через `wget` в текущий каталог (`example.wav`/`long_example.wav`) — нужен интернет, работа занимает минуты:
+Тестовые WAV закоммичены в `tests/assets/` (`example.wav`, `long_example.wav`) — сеть для аудио не нужна. Чекпойнты моделей (~ГБ) скачиваются с CDN Сбера в `~/.cache/gigaam` при первом обращении `load_model` (после этого — офлайн); для longform-тестов нужен снапшот `pyannote/segmentation-3.0` в кэше HF (первый запуск — с `HF_TOKEN`). Работа занимает минуты:
 
-- Быстро/офлайн: `pytest -v tests/test_normalize.py` (чистая нормализация текста, без скачиваний; нужен extra `[tests]`).
+- Быстро/офлайн: `pytest -v tests/test_normalize.py` (чистая нормализация текста; нужен extra `[tests]`).
 - Дефолт CI: `pytest -v tests/test_loading.py -m partial` — облегчённое подмножество.
 - `-m full` скачивает **каждый** чекпойнт (очень медленно, много места на диске; после использования удаляет каждый ckpt).
+- Общие аудио-фикстуры (`test_audio`, `long_audio`) живут в `tests/conftest.py`.
 - CI запускает каждый файл отдельно: `test_reading`, `test_batching`, `test_longform` (нужен HF_TOKEN), `test_onnx`, `test_timestamps`.
 - Особенности ONNX/GPU проверяются в `test_onnx.py`; CI работает на CPU, поэтому никогда не предполагайте CUDA в тестах.
 - Тесты сверяют точные строки транскрипций/нормализации (`_predictions` в `test_loading.py`, `test_normalize.py`) — любые правки нормализации/декодирования не должны ломать эти эталоны.

@@ -2,6 +2,7 @@ __pycache__
 build
 *.egg-info
 *.wav
+!tests/assets/*.wav
 .DS_Store
 *tmp*
 onnx

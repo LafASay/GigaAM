@@ -84,9 +84,8 @@ HF_TOKEN=<ваш hf токен> pytest -v tests/test_longform.py
 ```python
 import gigaam
 
-# Загрузка тестового аудио
-audio_path = gigaam.utils.download_short_audio()
-long_audio_path = gigaam.utils.download_long_audio()
+# Путь к вашему аудиофайлу
+audio_path = "audio.wav"
 
 # Аудио-эмбеддинги
 model_name = "v3_ssl"       # Единственный вариант ssl-энкодера

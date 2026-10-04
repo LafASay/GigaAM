@@ -7,16 +7,9 @@ import torch
 
 import gigaam
 from gigaam.onnx_utils import infer_onnx, load_onnx
-from gigaam.utils import download_short_audio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-@pytest.fixture(scope="session")
-def test_audio():
-    """Предоставляет тестовый аудиофайл для всех тестов"""
-    return download_short_audio()
 
 
 @pytest.mark.parametrize(

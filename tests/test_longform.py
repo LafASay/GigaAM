@@ -9,7 +9,6 @@ import soundfile as sf
 from scipy import signal
 
 import gigaam
-from gigaam.utils import download_long_audio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -151,12 +150,12 @@ def test_segmentation_functionality(duration):
 
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
-def test_transcribe_longform(revision):
+def test_transcribe_longform(revision, long_audio):
     """Проверяет longform-транскрипцию для разных моделей"""
     from gigaam.types import LongformTranscriptionResult, Segment
 
     model = gigaam.load_model(revision)
-    result = model.transcribe_longform(download_long_audio())
+    result = model.transcribe_longform(long_audio)
     ref = _predictions[revision]
 
     assert isinstance(

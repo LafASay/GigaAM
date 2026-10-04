@@ -1,5 +1,4 @@
 import csv
-import os
 import unicodedata
 import warnings
 from collections.abc import Iterable
@@ -184,28 +183,6 @@ def apply_masked_flash_attn(
     )
 
     return scores
-
-
-def download_short_audio() -> str:
-    """Скачивает тестовый аудиофайл, если его нет"""
-    audio_file = "example.wav"
-    if not os.path.exists(audio_file):
-        os.system(
-            'wget -O example.wav "https://cdn.chatwm.opensmodel.sberdevices.ru/GigaAM/example.wav"'
-        )
-    assert os.path.exists(audio_file), "Short audio file not found"
-    return audio_file
-
-
-def download_long_audio() -> str:
-    """Скачивает тестовый аудиофайл, если его нет"""
-    audio_file = "long_example.wav"
-    if not os.path.exists(audio_file):
-        os.system(
-            'wget -O long_example.wav "https://cdn.chatwm.opensmodel.sberdevices.ru/GigaAM/long_example.wav"'
-        )
-    assert os.path.exists(audio_file), "Long audio file not found"
-    return audio_file
 
 
 class AudioDataset(torch.utils.data.Dataset):

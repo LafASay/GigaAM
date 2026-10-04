@@ -3,7 +3,6 @@ import logging
 import pytest
 
 import gigaam
-from gigaam.utils import download_long_audio, download_short_audio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,16 +71,6 @@ _predictions = {
         ],
     },
 }
-
-
-@pytest.fixture(scope="session")
-def test_audio():
-    return download_short_audio()
-
-
-@pytest.fixture(scope="session")
-def long_audio():
-    return download_long_audio()
 
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])

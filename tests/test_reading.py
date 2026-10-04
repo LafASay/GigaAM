@@ -4,16 +4,10 @@ import pytest
 import torch
 
 import gigaam
-from gigaam.utils import AudioDataset, download_short_audio
+from gigaam.utils import AudioDataset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-@pytest.fixture(scope="session")
-def test_audio():
-    """Предоставляет тестовый аудиофайл для всех тестов"""
-    return download_short_audio()
 
 
 @pytest.mark.parametrize("revision", ["v3_ssl"])
