@@ -31,7 +31,7 @@ def forward_for_export_with_argmax(
 def _to_onnx_with_token_ids(
     self: Any, dir_path: str = ".", dtype: torch.dtype = torch.float32
 ) -> None:
-    """Convert to ONNX with token ids instead of logits."""
+    """Конвертирует в ONNX с ID токенов вместо логитов."""
     saved_forward = self.forward
     self.forward = self.forward_for_export
     try:

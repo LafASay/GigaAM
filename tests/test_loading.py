@@ -24,7 +24,7 @@ _predictions = {
 
 @pytest.fixture(scope="session")
 def test_audio():
-    """Provide test audio file for all tests"""
+    """Предоставляет тестовый аудиофайл для всех тестов"""
     return download_short_audio()
 
 
@@ -77,7 +77,7 @@ def run_model_method(model, revision, test_audio):
 )
 @pytest.mark.full
 def test_model_revision_full(revision, test_audio):
-    """Test specific model revision loads and processes audio (full models only)"""
+    """Проверяет, что конкретная версия модели загружается и обрабатывает аудио (только полный набор моделей)"""
     model = gigaam.load_model(revision)
     run_model_method(model, revision, test_audio)
     os.remove(os.path.join(gigaam._CACHE_DIR, f"{revision}.ckpt"))
@@ -88,7 +88,7 @@ def test_model_revision_full(revision, test_audio):
 )
 @pytest.mark.partial
 def test_model_revision_partial(revision, test_audio):
-    """Test specific model revision loads and processes audio (partial models enabled)"""
+    """Проверяет, что конкретная версия модели загружается и обрабатывает аудио (частичный набор моделей)"""
     model = gigaam.load_model(revision)
     run_model_method(model, revision, test_audio)
 

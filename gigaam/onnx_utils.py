@@ -20,7 +20,7 @@ MAX_LETTERS_PER_FRAME = 3
 
 
 def _session_float_dtype(session: rt.InferenceSession) -> np.dtype:
-    """Infer numpy float dtype from the first float input of an ONNX session."""
+    """Определяет numpy-тип float по первому float-входу ONNX-сессии."""
     _type_map: Dict[str, np.dtype] = {
         "tensor(float16)": np.dtype(np.float16),
         "tensor(float)": np.dtype(np.float32),
@@ -172,23 +172,23 @@ def infer_onnx(
     progress: bool = True,
 ) -> Union[List[str], np.ndarray, List[np.ndarray]]:
     """
-    Perform inference of GigaAM model with ONNX Runtime.
+    Выполняет инференс модели GigaAM с помощью ONNX Runtime.
 
-    Parameters
+    Параметры
     ----------
-    data : Path to a manifest file or an iterable of audio paths / waveforms.
-    model_cfg : Model configuration.
-    sessions : List of ONNX Runtime inference sessions.
+    data : Путь к файлу манифеста или итерируемый набор путей к аудио / волновых форм.
+    model_cfg : Конфигурация модели.
+    sessions : Список инференс-сессий ONNX Runtime.
     preprocessor : Optional[FeatureExtractor].
     tokenizer : Optional[Tokenizer].
-    batch_size : Inference batch size.
-    num_workers : Number of workers for data loading (use for large datasets).
-    progress : Whether to show progress bar.
+    batch_size : Размер батча при инференсе.
+    num_workers : Количество воркеров для загрузки данных (используйте для больших датасетов).
+    progress : Показывать ли прогресс-бар.
 
-    Returns
+    Возвращает
     -------
     Union[List[str], np.ndarray, List[np.ndarray]]
-        List of texts (ASR) / probs (Emo) / arrays (SSL) per sample.
+        Список текстов (ASR) / вероятностей (Emo) / массивов (SSL) для каждого сэмпла.
     """
     model_name = model_cfg.model_name
 
@@ -298,8 +298,8 @@ def load_onnx(
     List[rt.InferenceSession], Union[omegaconf.DictConfig, omegaconf.ListConfig]
 ]:
     """
-    Load a GigaAM model from ONNX Runtime given a model version.
-    Supports any family of models (ASR, Emo, SSL).
+    Загружает модель GigaAM в ONNX Runtime по заданной версии модели.
+    Поддерживает любые семейства моделей (ASR, Emo, SSL).
     """
     providers = _providers_list(provider)
 

@@ -43,7 +43,7 @@ class LongformTranscriptionResult:
 
     @property
     def words(self) -> List[Word]:
-        """Flatten all words from all segments."""
+        """Собирает все слова из всех сегментов в один список."""
         result = []
         for seg in self.segments:
             if seg.words:

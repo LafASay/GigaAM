@@ -31,7 +31,7 @@ def _conformer_layer_fwd(
 
 class StridingSubsampling(nn.Module):
     """
-    Strided Subsampling layer used to reduce the sequence length.
+    Слой страйдового сабсэмплинга, используемый для уменьшения длины последовательности.
     """
 
     def __init__(
@@ -78,8 +78,8 @@ class StridingSubsampling(nn.Module):
         self, lengths: Tensor, num_stages: Optional[int] = None
     ) -> Tensor:
         """
-        Valid length after applying ``num_stages`` strided subsampling conv
-        stages (defaults to all of them, i.e. the full subsampling output).
+        Валидная длина после применения ``num_stages`` стадий страйдовой
+        сабсэмплинг-свёртки (по умолчанию все стадии, т.е. полный выход сабсэмплинга).
         """
         if num_stages is None:
             num_stages = self._sampling_num
@@ -91,15 +91,15 @@ class StridingSubsampling(nn.Module):
 
     def _mask_time(self, x: Tensor, lengths: Tensor) -> Tensor:
         """
-        Zero out the padded tail along the time axis (dim 2). The subsampling
-        convolutions are strided and have a receptive field wider than the
-        stride, so the padded frames of shorter samples leak into the last
-        valid frames. Left unmasked, the padding is the log-mel floor
-        (``log(1e-9) ~= -20.7``) of zero-padded audio, not zero, so a batched
-        short sample sees a different boundary than the same sample run alone
-        (where conv zero-padding applies instead). Re-zeroing after every conv
-        stage keeps the valid frames of batched inference aligned with the
-        batch-size-1 result.
+        Обнуляет хвост паддинга вдоль оси времени (размерность 2). Свёртки
+        сабсэмплинга идут со страйдом и имеют рецептивное поле шире страйда,
+        поэтому паддинговые кадры более коротких сэмплов «протекают» в последние
+        валидные кадры. Без маскирования паддинг равен нижней границе log-mel
+        (``log(1e-9) ~= -20.7``) для аудио, дополненного нулями, а не нулю, поэтому
+        короткий сэмпл в батче видит иную границу, чем тот же сэмпл, запущенный
+        отдельно (где вместо этого применяется нулевой паддинг свёртки).
+        Повторное обнуление после каждой стадии свёртки сохраняет валидные кадры
+        батчевого инференса согласованными с результатом для батча размера 1.
         """
         time = torch.arange(x.size(2), device=x.device)
         pad = time[None, :] >= lengths[:, None]  # [b, t]
@@ -132,7 +132,7 @@ class StridingSubsampling(nn.Module):
 
 class MultiHeadAttention(nn.Module, ABC):
     """
-    Base class of Multi-Head Attention Mechanisms.
+    Базовый класс механизмов многоголового внимания.
     """
 
     def __init__(
@@ -160,7 +160,7 @@ class MultiHeadAttention(nn.Module, ABC):
         self, query: Tensor, key: Tensor, value: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        Projects the inputs into queries, keys, and values for multi-head attention.
+        Проецирует входы в запросы, ключи и значения для многоголового внимания.
         """
         b = query.size(0)
         q = self.linear_q(query).view(b, -1, self.h, self.d_k)
@@ -174,7 +174,8 @@ class MultiHeadAttention(nn.Module, ABC):
         self, value: Tensor, scores: Tensor, mask: Optional[Tensor]
     ) -> Tensor:
         """
-        Computes the scaled dot-product attention given the projected values and scores.
+        Вычисляет масштабированное скалярное произведение (dot-product attention)
+        по спроецированным значениям и оценкам.
         """
         b = value.size(0)
         if mask is not None:
@@ -190,7 +191,7 @@ class MultiHeadAttention(nn.Module, ABC):
 
 class RelPositionMultiHeadAttention(MultiHeadAttention):
     """
-    Relative Position Multi-Head Attention module.
+    Модуль многоголового внимания с относительной позиционной кодировкой.
     """
 
     def __init__(self, n_head: int, n_feat: int):
@@ -230,7 +231,7 @@ class RelPositionMultiHeadAttention(MultiHeadAttention):
 
 class RotaryPositionMultiHeadAttention(MultiHeadAttention):
     """
-    Rotary Position Multi-Head Attention module.
+    Модуль многоголового внимания с ротационной позиционной кодировкой.
     """
 
     def forward(
@@ -279,7 +280,7 @@ class RotaryPositionMultiHeadAttention(MultiHeadAttention):
 
 class PositionalEncoding(nn.Module, ABC):
     """
-    Base class of Positional Encodings.
+    Базовый класс позиционных кодировок.
     """
 
     def __init__(self, dim: int, base: int):
@@ -293,7 +294,7 @@ class PositionalEncoding(nn.Module, ABC):
 
     def extend_pe(self, length: int, device: torch.device):
         """
-        Extends the positional encoding buffer to process longer sequences.
+        Расширяет буфер позиционного кодирования для обработки более длинных последовательностей.
         """
         pe = self.create_pe(length, device)
         if pe is None:
@@ -306,12 +307,12 @@ class PositionalEncoding(nn.Module, ABC):
 
 class RelPositionalEmbedding(PositionalEncoding):
     """
-    Relative Positional Embedding module.
+    Модуль относительной позиционной кодировки.
     """
 
     def create_pe(self, length: int, device: torch.device) -> Optional[Tensor]:
         """
-        Creates the relative positional encoding matrix.
+        Создаёт матрицу относительной позиционной кодировки.
         """
         if hasattr(self, "pe") and self.pe.shape[1] >= 2 * length - 1:
             return None
@@ -336,12 +337,12 @@ class RelPositionalEmbedding(PositionalEncoding):
 
 class RotaryPositionalEmbedding(PositionalEncoding):
     """
-    Rotary Positional Embedding module.
+    Модуль ротационной позиционной кодировки.
     """
 
     def create_pe(self, length: int, device: torch.device) -> Optional[Tensor]:
         """
-        Creates or extends the rotary positional encoding matrix.
+        Создаёт или расширяет матрицу ротационной позиционной кодировки.
         """
         if hasattr(self, "pe") and self.pe.size(0) >= 2 * length:
             return None
@@ -363,7 +364,7 @@ class RotaryPositionalEmbedding(PositionalEncoding):
 
 class ConformerConvolution(nn.Module):
     """
-    Conformer Convolution module.
+    Свёрточный модуль Conformer.
     """
 
     def __init__(
@@ -411,7 +412,7 @@ class ConformerConvolution(nn.Module):
 
 class ConformerFeedForward(nn.Module):
     """
-    Conformer Feed Forward module.
+    Полносвязный модуль (feed forward) Conformer.
     """
 
     def __init__(self, d_model: int, d_ff: int, use_bias=True):
@@ -426,10 +427,9 @@ class ConformerFeedForward(nn.Module):
 
 class ConformerLayer(nn.Module):
     """
-    Conformer Layer module.
-    This module combines several submodules including feed forward networks,
-    depthwise separable convolution, and multi-head self-attention
-    to form a single Conformer block.
+    Модуль слоя Conformer.
+    Объединяет несколько подмодулей — полносвязные сети, depthwise separable
+    свёртку и многоголовое само-внимание — в единый блок Conformer.
     """
 
     def __init__(
@@ -500,11 +500,10 @@ class ConformerLayer(nn.Module):
 
 class ConformerEncoder(nn.Module):
     """
-    Conformer Encoder module.
-    This module encapsulates the entire Conformer encoder architecture,
-    consisting of a StridingSubsampling layer, positional embeddings, and
-    a stack of Conformer Layers.
-    It serves as the main component responsible for processing speech features.
+    Модуль энкодера Conformer.
+    Инкапсулирует всю архитектуру энкодера Conformer, состоящую из слоя
+    StridingSubsampling, позиционных кодировок и стека слоёв Conformer.
+    Служит основным компонентом, отвечающим за обработку речевых признаков.
     """
 
     def __init__(

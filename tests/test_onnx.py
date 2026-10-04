@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="session")
 def test_audio():
-    """Provide test audio file for all tests"""
+    """Предоставляет тестовый аудиофайл для всех тестов"""
     return download_short_audio()
 
 
@@ -29,7 +29,7 @@ def test_audio():
     ],
 )
 def test_onnx_converting(revision, export_dtype, test_audio):
-    """Test model revision converts to ONNX and produces correct batched output."""
+    """Проверяет конвертацию версии модели в ONNX и корректный батчевый выход."""
     onnx_dir = "test_onnx_tmp"
     model = gigaam.load_model(revision)
     model.to_onnx(dir_path=onnx_dir, dtype=export_dtype)

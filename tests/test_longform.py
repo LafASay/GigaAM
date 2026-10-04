@@ -63,7 +63,7 @@ _predictions = {
 
 
 def generate_long_audio(duration=60.0, sr=16000, include_silence=True):
-    """Generate long test audio with speech-like segments and silence"""
+    """Генерирует длинное тестовое аудио с речеподобными сегментами и тишиной"""
     t = np.linspace(0, duration, int(sr * duration))
     audio = np.zeros_like(t, dtype=np.float32)
     segment_durations = list(np.random.uniform(0.2, 5, size=100))
@@ -97,7 +97,7 @@ def generate_long_audio(duration=60.0, sr=16000, include_silence=True):
 def validate_segmentation_boundaries(
     boundaries: List[Tuple[float, float]], audio_duration: float
 ):
-    """Validate segmentation boundaries meet requirements"""
+    """Проверяет, что границы сегментации соответствуют требованиям"""
     issues = []
     total_duration = 0.0
 
@@ -125,7 +125,7 @@ def validate_segmentation_boundaries(
 
 @pytest.mark.parametrize("duration", [30.0, 60.0, 120.0])
 def test_segmentation_functionality(duration):
-    """Test audio segmentation with different durations"""
+    """Проверяет сегментацию аудио с разной длительностью"""
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         try:
             audio = generate_long_audio(duration=duration)
@@ -152,7 +152,7 @@ def test_segmentation_functionality(duration):
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 def test_transcribe_longform(revision):
-    """Test longform transcription for different models"""
+    """Проверяет longform-транскрипцию для разных моделей"""
     from gigaam.types import LongformTranscriptionResult, Segment
 
     model = gigaam.load_model(revision)
@@ -181,7 +181,7 @@ def test_transcribe_longform(revision):
 
 @pytest.mark.parametrize("revision", ["v3_ctc"])
 def test_longform_consistency(revision):
-    """Test that multiple runs produce consistent results"""
+    """Проверяет, что повторные запуски дают согласованные результаты"""
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         try:
             audio = generate_long_audio(duration=30.0)
@@ -206,7 +206,7 @@ def test_longform_consistency(revision):
 
 
 def test_segmentation_edge_cases():
-    """Test segmentation with edge cases"""
+    """Проверяет сегментацию на крайних случаях"""
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         try:
             # Very short audio

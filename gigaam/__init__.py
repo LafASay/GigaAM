@@ -52,7 +52,7 @@ _MODEL_HASHES = {
 def _download_file(
     file_url: str, file_path: str, retries: int = _DOWNLOAD_RETRIES
 ) -> str:
-    """Download a file if not already cached, retrying a few times on failure."""
+    """Скачивает файл, если его ещё нет в кэше, с несколькими повторными попытками при сбое."""
     if os.path.exists(file_path):
         return file_path
 
@@ -96,7 +96,7 @@ def _download_file(
 
 
 def _download_model(model_name: str, download_root: str) -> Tuple[str, str]:
-    """Download the model weights if not already cached."""
+    """Скачивает веса модели, если они ещё не закэшированы."""
     short_names = ["ctc", "rnnt", "e2e_ctc", "e2e_rnnt", "ssl"]
     possible_names = short_names + list(_MODEL_HASHES.keys())
     if model_name not in possible_names:
@@ -112,7 +112,7 @@ def _download_model(model_name: str, download_root: str) -> Tuple[str, str]:
 
 
 def _download_tokenizer(model_name: str, download_root: str) -> Optional[str]:
-    """Download the tokenizer if required and return its path."""
+    """При необходимости скачивает токенизатор и возвращает путь к нему."""
     if model_name != "v1_rnnt" and "e2e" not in model_name:
         return None  # No tokenizer required for this model
 
@@ -122,12 +122,12 @@ def _download_tokenizer(model_name: str, download_root: str) -> Optional[str]:
 
 
 def hash_path(ckpt_path: str) -> str:
-    """Calculate binary file hash for checksum"""
+    """Вычисляет хэш бинарного файла для проверки контрольной суммы"""
     return hashlib.md5(open(ckpt_path, "rb").read()).hexdigest()
 
 
 def _apply_flash_policy(cfg, use_flash: Optional[bool], device_obj: torch.device):
-    """Apply the flash_attn override and the CPU fallback to a model cfg."""
+    """Применяет переопределение flash_attn и откат на CPU к конфигурации модели."""
     if use_flash is not None:
         cfg.encoder.flash_attn = use_flash
     if cfg.encoder.get("flash_attn", False) and device_obj.type == "cpu":
@@ -140,7 +140,7 @@ def _finalize_model(
     fp16_encoder: bool,
     device_obj: torch.device,
 ) -> Union["GigaAM", "GigaAMEmo", "GigaAMASR"]:
-    """Shared load-time tail: eval mode, optional fp16 encoder, target device."""
+    """Общий финал загрузки: режим eval, опциональный fp16-энкодер, целевое устройство."""
     model = model.eval()
     if fp16_encoder and device_obj.type != "cpu":
         model.encoder = model.encoder.half()
@@ -148,7 +148,7 @@ def _finalize_model(
 
 
 def _normalize_device(device: Optional[Union[str, torch.device]]) -> torch.device:
-    """Normalize device parameter to torch.device."""
+    """Приводит параметр устройства к torch.device."""
     if device is None:
         device_str = "cuda" if torch.cuda.is_available() else "cpu"
         return torch.device(device_str)
@@ -165,21 +165,21 @@ def load_model(
     download_root: Optional[str] = None,
 ) -> Union[GigaAM, GigaAMEmo, GigaAMASR]:
     """
-    Load the GigaAM model by name, or a local ``.ckpt`` from fine-tuning.
+    Загружает модель GigaAM по имени или локальный ``.ckpt`` после файнтюна.
 
-    Parameters
+    Параметры
     ----------
     model_name : str
-        Model name or a path to a ``.ckpt`` file.
+        Имя модели или путь к файлу ``.ckpt``.
     fp16_encoder:
-        Whether to convert encoder weights to FP16 precision.
+        Нужно ли преобразовать веса энкодера к точности FP16.
     use_flash : Optional[bool]
-        Whether to use flash_attn if the model allows it (requires the flash_attn library installed).
-        Default to False.
+        Использовать ли flash_attn, если модель это позволяет (требуется установленная библиотека flash_attn).
+        По умолчанию False.
     device : Optional[Union[str, torch.device]]
-        The device to load the model onto. Defaults to "cuda" if available, otherwise "cpu".
+        Устройство, на которое загрузить модель. По умолчанию "cuda", если доступно, иначе "cpu".
     download_root : Optional[str]
-        The directory to download the model to. Defaults to "~/.cache/gigaam".
+        Каталог для скачивания модели. По умолчанию "~/.cache/gigaam".
     """
     device_obj = _normalize_device(device)
 

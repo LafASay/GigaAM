@@ -9,8 +9,8 @@ from .decoder import CTCHead, RNNTHead
 
 class Tokenizer:
     """
-    Tokenizer for converting between text and token IDs.
-    The tokenizer can operate either character-wise or using a pre-trained SentencePiece model.
+    Токенизатор, преобразующий текст в ID токенов и обратно.
+    Может работать посимвольно либо с использованием предобученной модели SentencePiece.
     """
 
     def __init__(self, vocab: List[str], model_path: Optional[str] = None):
@@ -23,7 +23,7 @@ class Tokenizer:
 
     def decode(self, tokens: List[int]) -> str:
         """
-        Convert a list of token IDs back to a string.
+        Преобразует список ID токенов обратно в строку.
         """
         if self.charwise:
             return "".join(self.vocab[tok] for tok in tokens)
@@ -31,13 +31,13 @@ class Tokenizer:
 
     def __len__(self):
         """
-        Get the total number of tokens in the vocabulary.
+        Возвращает общее количество токенов в словаре.
         """
         return len(self.vocab) if self.charwise else len(self.model)
 
     def id_to_str(self, token_id: int) -> str:
         """
-        Convert a single token ID to its string representation.
+        Преобразует одиночный ID токена в его строковое представление.
         """
         if self.charwise:
             return self.vocab[token_id]
@@ -46,7 +46,7 @@ class Tokenizer:
 
 class CTCGreedyDecoding:
     """
-    Class for performing greedy decoding of CTC outputs.
+    Класс для жадного декодирования выходов CTC.
     """
 
     def __init__(self, vocabulary: List[str], model_path: Optional[str] = None):
@@ -61,8 +61,8 @@ class CTCGreedyDecoding:
         lengths: Tensor,
     ) -> List[Tuple[str, List[int], List[int]]]:
         """
-        CTC greedy decode: returns (text, token_ids, token_frames) per sample.
-        Token frames are time indices (0..T-1) where a token is emitted.
+        Жадное CTC-декодирование: возвращает (текст, id_токенов, кадры_токенов) для каждого сэмпла.
+        Кадры токенов — временные индексы (0..T-1), в которых выдан токен.
         """
         log_probs = head(encoder_output=encoded)
         C = log_probs.shape[-1]
@@ -98,7 +98,7 @@ class CTCGreedyDecoding:
 
 class RNNTGreedyDecoding:
     """
-    Class for performing greedy decoding of RNN-T outputs.
+    Класс для жадного декодирования выходов RNN-T.
     """
 
     def __init__(
@@ -113,14 +113,14 @@ class RNNTGreedyDecoding:
 
     @staticmethod
     def _cat_states(states):
-        """Pack per-sample LSTM states into batched (h, c)."""
+        """Упаковывает посэмпловые LSTM-состояния в батчевые (h, c)."""
         hs = [s[0] for s in states]
         cs = [s[1] for s in states]
         return torch.cat(hs, dim=1), torch.cat(cs, dim=1)
 
     @staticmethod
     def _split_state(state):
-        """Unpack batched (h, c) into per-sample states."""
+        """Распаковывает батчевые (h, c) в посэмпловые состояния."""
         h, c = state
         b = h.shape[1]
         return [(h[:, i : i + 1], c[:, i : i + 1]) for i in range(b)]
@@ -133,8 +133,8 @@ class RNNTGreedyDecoding:
         enc_len: Tensor,
     ) -> List[Tuple[str, List[int], List[int]]]:
         """
-        RNN-T greedy decode: returns (text, token_ids, token_frames) per sample.
-        Token frames are encoder time indices where tokens are emitted.
+        Жадное RNN-T-декодирование: возвращает (текст, id_токенов, кадры_токенов) для каждого сэмпла.
+        Кадры токенов — временные индексы энкодера, в которых выданы токены.
         """
         x = encoded.transpose(1, 2)  # [B, T, D]
         B, T, _ = x.shape
@@ -146,7 +146,7 @@ class RNNTGreedyDecoding:
         dec_state: List[Optional[Tuple[Tensor, Tensor]]] = [None] * B
 
         def emit_batch(batch_idx: List[int], t: int, fresh: bool) -> List[int]:
-            """One batched predictor+joint step; returns samples that emitted non-blank."""
+            """Один батчевый шаг predictor+joint; возвращает сэмплы, выдавшие не-blank."""
             idx = torch.tensor(batch_idx, device=device, dtype=torch.long)
             f = x[idx, t : t + 1, :]  # [b, 1, D]
 

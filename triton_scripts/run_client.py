@@ -16,17 +16,17 @@ def infer_ensemble(
     timeout: int = 60,
 ) -> List[str]:
     """
-    Run inference on ensemble model.
+    Запускает инференс ансамблевой модели.
 
-    Args:
-        wav_paths: List of paths to WAV files
-        model_type: Type of model - "ctc" or "rnnt"
-        backend: Backend type - "onnx" or "trt"
-        triton_url: Triton server URL (with or without http:// prefix)
-        timeout: Request timeout in seconds
+    Аргументы:
+        wav_paths: Список путей к WAV-файлам
+        model_type: Тип модели - "ctc" или "rnnt"
+        backend: Тип бэкенда - "onnx" или "trt"
+        triton_url: URL сервера Triton (с префиксом http:// или без)
+        timeout: Таймаут запроса в секундах
 
-    Returns:
-        List of transcribed texts
+    Возвращает:
+        Список транскрибированных текстов
     """
     if model_type not in ["ctc", "rnnt"]:
         raise ValueError(f"Invalid model_type: {model_type}. Must be 'ctc' or 'rnnt'")

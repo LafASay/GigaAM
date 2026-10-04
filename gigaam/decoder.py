@@ -6,7 +6,7 @@ from torch import Tensor, nn
 
 class CTCHead(nn.Module):
     """
-    CTC Head module for Connectionist Temporal Classification.
+    Модуль CTC-головы для Connectionist Temporal Classification.
     """
 
     def __init__(self, feat_in: int, num_classes: int):
@@ -23,9 +23,9 @@ class CTCHead(nn.Module):
 
 class RNNTJoint(nn.Module):
     """
-    RNN-Transducer Joint Network Module.
-    This module combines the outputs of the encoder and the prediction network using
-    a linear transformation followed by ReLU activation and another linear projection.
+    Модуль совместной сети RNN-Transducer.
+    Объединяет выходы энкодера и сети предсказания с помощью
+    линейной трансформации,ReLU-активации и ещё одной линейной проекции.
     """
 
     def __init__(
@@ -40,7 +40,7 @@ class RNNTJoint(nn.Module):
 
     def joint(self, encoder_out: Tensor, decoder_out: Tensor) -> Tensor:
         """
-        Combine the encoder and prediction network outputs into a joint representation.
+        Объединяет выходы энкодера и сети предсказания в общее представление.
         """
         enc = self.enc(encoder_out).unsqueeze(2)
         pred = self.pred(decoder_out).unsqueeze(1)
@@ -71,8 +71,8 @@ class RNNTJoint(nn.Module):
 
 class RNNTDecoder(nn.Module):
     """
-    RNN-Transducer Decoder Module.
-    This module handles the prediction network part of the RNN-Transducer architecture.
+    Модуль декодера RNN-Transducer.
+    Отвечает за часть сети предсказания в архитектуре RNN-Transducer.
     """
 
     def __init__(self, pred_hidden: int, pred_rnn_layers: int, num_classes: int):
@@ -89,8 +89,8 @@ class RNNTDecoder(nn.Module):
         batch_size: int = 1,
     ) -> Tuple[Tensor, Tensor]:
         """
-        Make predictions based on the current input and previous states.
-        If no input is provided, use zeros as the initial input.
+        Делает предсказания на основе текущего входа и предыдущих состояний.
+        Если вход не задан, в качестве начального входа используются нули.
         """
         if x is not None:
             emb: Tensor = self.embed(x)
@@ -130,7 +130,7 @@ class RNNTDecoder(nn.Module):
 
     def forward(self, x: Tensor, h: Tensor, c: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        ONNX-specific forward with x, state = (h, c) -> x, h, c.
+        Специфичный для ONNX forward: x, state = (h, c) -> x, h, c.
         """
         emb = self.embed(x)
         g, (h, c) = self.lstm(emb.transpose(0, 1), (h, c))
@@ -139,8 +139,8 @@ class RNNTDecoder(nn.Module):
 
 class RNNTHead(nn.Module):
     """
-    RNN-Transducer Head Module.
-    This module combines the decoder and joint network components of the RNN-Transducer architecture.
+    Модуль головы RNN-Transducer.
+    Объединяет компоненты декодера и совместной сети архитектуры RNN-Transducer.
     """
 
     def __init__(self, decoder: Dict[str, int], joint: Dict[str, int]):

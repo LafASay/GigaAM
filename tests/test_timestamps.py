@@ -86,7 +86,7 @@ def long_audio():
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 def test_word_timestamps_predictions(revision, test_audio):
-    """Test word timestamps match expected values."""
+    """Проверяет, что таймстампы слов совпадают с ожидаемыми значениями."""
     model = gigaam.load_model(revision, device="cpu")
     result = model.transcribe(test_audio, word_timestamps=True)
     expected = _predictions[revision]
@@ -104,7 +104,7 @@ def test_word_timestamps_predictions(revision, test_audio):
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 def test_transcribe_word_timestamps_structure(revision, test_audio):
-    """Test that word_timestamps=True returns correct structure."""
+    """Проверяет, что word_timestamps=True возвращает корректную структуру."""
     from gigaam.types import TranscriptionResult, Word
 
     model = gigaam.load_model(revision)
@@ -123,7 +123,7 @@ def test_transcribe_word_timestamps_structure(revision, test_audio):
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 def test_transcribe_word_timestamps_values(revision, test_audio):
-    """Test that word timestamps have valid and ordered values."""
+    """Проверяет, что таймстампы слов валидны и упорядочены."""
     model = gigaam.load_model(revision)
     result = model.transcribe(test_audio, word_timestamps=True)
 
@@ -145,7 +145,7 @@ def test_transcribe_word_timestamps_values(revision, test_audio):
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 def test_transcribe_default_returns_string(revision, test_audio):
-    """Test that default behavior (word_timestamps=False) returns TranscriptionResult with __str__."""
+    """Проверяет, что поведение по умолчанию (word_timestamps=False) возвращает TranscriptionResult с __str__."""
     from gigaam.types import TranscriptionResult
 
     model = gigaam.load_model(revision)
@@ -159,7 +159,7 @@ def test_transcribe_default_returns_string(revision, test_audio):
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 def test_transcribe_longform_word_timestamps(revision, long_audio):
-    """Test longform transcription with word_timestamps=True."""
+    """Проверяет longform-транскрипцию с word_timestamps=True."""
     from gigaam.types import LongformTranscriptionResult, Segment, Word
 
     model = gigaam.load_model(revision)
@@ -193,7 +193,7 @@ def test_transcribe_longform_word_timestamps(revision, long_audio):
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 def test_transcribe_longform_default(revision, long_audio):
-    """Test that default longform behavior returns segments with transcription."""
+    """Проверяет, что longform по умолчанию возвращает сегменты с транскрипцией."""
     from gigaam.types import LongformTranscriptionResult, Segment
 
     model = gigaam.load_model(revision)

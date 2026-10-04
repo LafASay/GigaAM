@@ -6,7 +6,7 @@ from .types import Word
 
 
 def compute_frame_shift(audio_length_samples: int, seq_len: int) -> float:
-    """Compute frame shift (seconds per encoder frame)."""
+    """Вычисляет сдвиг кадра (секунды на кадр энкодера)."""
     return audio_length_samples / SAMPLE_RATE / seq_len
 
 
@@ -17,8 +17,8 @@ def frames_to_words(
     frame_shift: float,
 ) -> List[Word]:
     """
-    Convert token-level frame indices to word-level timestamps.
-    Groups tokens into words at word boundaries (space or sentencepiece '▁' prefix).
+    Преобразует кадровые индексы токенов в таймстампы на уровне слов.
+    Группирует токены в слова по границам слов (пробел или префикс '▁' в sentencepiece).
     """
     words: List[Word] = []
     current_chars: List[str] = []

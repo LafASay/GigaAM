@@ -20,13 +20,13 @@ from .types import AudioDatasetSample
 
 def normalize_raw_text(text: str) -> str:
     """
-    Script-agnostic normalization: lowercase, collapse whitespace,
-    and keep only alphanumeric characters plus spaces — i.e. drop punctuation/symbols.
+    Нормализация без привязки к скрипту: нижний регистр, схлопывание пробелов,
+    остаются только буквенно-цифровые символы и пробелы — т.е. пунктуация/символы удаляются.
 
-    Word-internal apostrophes are preserved (e.g. ``don't`` stays ``don't``).
-    Apostrophe variants are normalized to ASCII ``'``.
-    Standalone quotes are dropped (not between two alphanumerics).
-    Hyphens/dashes (Unicode category Pd) split words (``word-internal`` -> ``word internal``).
+    Апострофы внутри слова сохраняются (например, ``don't`` остаётся ``don't``).
+    Варианты апострофа нормализуются к ASCII ``'``.
+    Автономные кавычки удаляются (не между двумя буквенно-цифровыми символами).
+    Дефисы/тире (Unicode-категория Pd) разделяют слова (``word-internal`` -> ``word internal``).
     """
     text = text.replace("ё", "е").replace("Ё", "Е").lower()
     for quote in ("’", "‘", "ʻ", "ʼ"):
@@ -61,8 +61,9 @@ def onnx_converter(
     export_dtype: torch.dtype = torch.float32,
 ):
     """
-    Export a submodule to ONNX: casts inputs and ``module`` to ``export_dtype`` for tracing,
-    then restores the module to float32 via ``module.float()`` so the model stays usable.
+    Экспортирует подмодуль в ONNX: приводит входы и ``module`` к ``export_dtype``
+    для трассировки, затем возвращает модуль к float32 через ``module.float()``,
+    чтобы модель оставалась пригодной к использованию.
     """
     if inputs is None:
         inputs = module.input_example()  # type: ignore[operator]
@@ -97,7 +98,7 @@ def onnx_converter(
 
 def format_time(seconds: float) -> str:
     """
-    Formats time in seconds to HH:MM:SS:mm format.
+    Преобразует время в секундах в формат HH:MM:SS:mm.
     """
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
@@ -119,7 +120,7 @@ def apply_rotary_pos_emb(
     q: Tensor, k: Tensor, cos: Tensor, sin: Tensor, offset: int = 0
 ) -> Tuple[Tensor, Tensor]:
     """
-    Applies Rotary Position Embeddings to query and key tensors.
+    Применяет ротационные позиционные кодировки (RoPE) к тензорам запросов и ключей.
     """
     cos, sin = (
         cos[offset : q.shape[0] + offset, ...],
@@ -139,7 +140,7 @@ def apply_masked_flash_attn(
     d_k: int,
 ) -> Tensor:
     """
-    Applies Flash Attention with padding masks.
+    Применяет Flash Attention с масками паддинга.
     """
 
     from einops import rearrange
@@ -186,7 +187,7 @@ def apply_masked_flash_attn(
 
 
 def download_short_audio() -> str:
-    """Download test audio file if not exists"""
+    """Скачивает тестовый аудиофайл, если его нет"""
     audio_file = "example.wav"
     if not os.path.exists(audio_file):
         os.system(
@@ -197,7 +198,7 @@ def download_short_audio() -> str:
 
 
 def download_long_audio() -> str:
-    """Download test audio file if not exists"""
+    """Скачивает тестовый аудиофайл, если его нет"""
     audio_file = "long_example.wav"
     if not os.path.exists(audio_file):
         os.system(
@@ -209,9 +210,9 @@ def download_long_audio() -> str:
 
 class AudioDataset(torch.utils.data.Dataset):
     """
-    Unified dataset class for training and inference.
-    Supports loading from manifest file or an iterable of audio paths / waveforms.
-    Provides min / max duration filtering, text normalization, and pre-tokenization.
+    Универсальный класс датасета для обучения и инференса.
+    Поддерживает загрузку из файла-манифеста или итерируемого набора путей к аудио / волновых форм.
+    Предоставляет фильтрацию по мин./макс. длительности, нормализацию текста и пред-токенизацию.
     """
 
     def __init__(

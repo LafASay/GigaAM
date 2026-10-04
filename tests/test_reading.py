@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="session")
 def test_audio():
-    """Provide test audio file for all tests"""
+    """Предоставляет тестовый аудиофайл для всех тестов"""
     return download_short_audio()
 
 
 @pytest.mark.parametrize("revision", ["emo"])
 def test_torchaudio_loading(revision, test_audio):
-    """Torchaudio-loaded waveform should match get_probs(path) (ffmpeg load_audio)."""
+    """Волна, загруженная через torchaudio, должна совпадать с get_probs(path) (ffmpeg load_audio)."""
     model = gigaam.load_model(revision)
     wav_tns = AudioDataset([test_audio])[0]
     lengths = torch.full([1], wav_tns.shape[-1], device=model._device)

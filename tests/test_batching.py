@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_test_audio(duration=3.0, sr=16000):
-    """Generate synthetic test audio with different characteristics"""
+    """Генерирует синтетическое тестовое аудио с разными характеристиками"""
     t = np.linspace(0, duration, int(sr * duration))
     audio = (
         0.5 * np.sin(2 * np.pi * 220 * t)
@@ -26,14 +26,14 @@ def generate_test_audio(duration=3.0, sr=16000):
 
 
 def create_test_batches(batch_size=4, max_duration=3.0, sr=16000):
-    """Create test batches with different lengths"""
+    """Создаёт тестовые батчи с разными длинами"""
     durations = np.linspace(max_duration * 0.5, max_duration, batch_size)
     ds = AudioDataset([generate_test_audio(duration=dr, sr=sr) for dr in durations])
     return ds.collate([ds[i] for i in range(len(ds))])
 
 
 def custom_forward(model, features, feature_lengths):
-    """Custom forward pass for batching comparison"""
+    """Собственный прямой проход для сравнения батчевого инференса"""
     out_feat, out_lns = [], []
     for i in range(len(features)):
         of, ol = model.preprocessor(
@@ -68,7 +68,7 @@ def custom_forward(model, features, feature_lengths):
 
 
 def compare_outputs(output1, output2, atol=0.03):
-    """Compare two model outputs with tolerance"""
+    """Сравнивает два выхода модели с допуском"""
     feat1, lens1 = output1
     feat2, lens2 = output2
     assert (lens1 == lens2).all(), f"Length mismatch: {lens1} != {lens2}"
@@ -86,7 +86,7 @@ def compare_outputs(output1, output2, atol=0.03):
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 @pytest.mark.parametrize("batch_size", [1, 2, 4])
 def test_model_batching(revision, batch_size):
-    """Test batching correctness for different models and batch sizes"""
+    """Проверяет корректность батчинга для разных моделей и размеров батча"""
     torch.manual_seed(0)
     model = gigaam.load_model(revision)
     model.eval()
@@ -124,7 +124,7 @@ def test_model_batching(revision, batch_size):
 
 @pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
 def test_batching_edge_cases(revision):
-    """Test batching with edge cases"""
+    """Проверяет батчинг на крайних случаях"""
     model = gigaam.load_model(revision)
     model.eval()
     device = next(model.parameters()).device
@@ -142,7 +142,7 @@ def test_batching_edge_cases(revision):
 
 @pytest.mark.parametrize("max_duration", [0.5, 1.0])
 def test_different_audio_lengths(max_duration):
-    """Test batching with different audio durations"""
+    """Проверяет батчинг с разной длительностью аудио"""
     model = gigaam.load_model("v3_e2e_ctc")
     model.eval()
     device = next(model.parameters()).device

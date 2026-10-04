@@ -11,7 +11,7 @@ SAMPLE_RATE = 16000
 
 def load_audio(audio_path: str, sample_rate: int = SAMPLE_RATE) -> Tensor:
     """
-    Load an audio file and resample it to the specified sample rate.
+    Загружает аудиофайл и передискретизирует его до заданной частоты дискретизации.
     """
     cmd = [
         "ffmpeg",
@@ -42,8 +42,8 @@ def load_audio(audio_path: str, sample_rate: int = SAMPLE_RATE) -> Tensor:
 
 class SpecScaler(nn.Module):
     """
-    Module that applies logarithmic scaling to spectrogram values.
-    This module clamps the input values within a certain range and then applies a natural logarithm.
+    Модуль, применяющий логарифмическое масштабирование к значениям спектрограммы.
+    Сначала ограничивает входные значения заданным диапазоном, затем применяет натуральный логарифм.
     """
 
     def forward(self, x: Tensor) -> Tensor:
@@ -52,9 +52,9 @@ class SpecScaler(nn.Module):
 
 class FeatureExtractor(nn.Module):
     """
-    Module for extracting Log-mel spectrogram features from raw audio signals.
-    This module uses Torchaudio's MelSpectrogram transform to extract features
-    and applies logarithmic scaling.
+    Модуль извлечения признаков Log-mel спектрограммы из сырых аудиосигналов.
+    Использует преобразование MelSpectrogram из Torchaudio для извлечения признаков
+    и применяет логарифмическое масштабирование.
     """
 
     def __init__(self, sample_rate: int, features: int, **kwargs):
@@ -77,7 +77,7 @@ class FeatureExtractor(nn.Module):
 
     def out_len(self, input_lengths: Tensor) -> Tensor:
         """
-        Calculates the output length after the feature extraction process.
+        Вычисляет длину выхода после процесса извлечения признаков.
         """
         if self.center:
             return (
@@ -93,6 +93,6 @@ class FeatureExtractor(nn.Module):
 
     def forward(self, input_signal: Tensor, length: Tensor) -> Tuple[Tensor, Tensor]:
         """
-        Extract Log-mel spectrogram features from the input audio signal.
+        Извлекает признаки Log-mel спектрограммы из входного аудиосигнала.
         """
         return self.featurizer(input_signal), self.out_len(length)

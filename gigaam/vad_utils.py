@@ -17,7 +17,7 @@ _PIPELINE = None
 
 def resolve_local_segmentation_path(model_id: str) -> str:
     """
-    Finds the local path to the segmentation model.
+    Находит локальный путь к модели сегментации.
     """
     try:
         return snapshot_download(
@@ -42,8 +42,8 @@ def resolve_local_segmentation_path(model_id: str) -> str:
 
 def load_segmentation_model(model_id: str) -> Model:
     """
-    Loads the segmentation model from a local snapshot.
-    If it doesn’t exist, it first creates (downloads) the snapshot.
+    Загружает модель сегментации из локального снапшота.
+    Если его нет — сначала создаёт (скачивает) снапшот.
     """
     local_path = resolve_local_segmentation_path(model_id=model_id)
 
@@ -62,9 +62,9 @@ def get_pipeline(
     device: torch.device, model_id: str = "pyannote/segmentation-3.0"
 ) -> Pipeline:
     """
-    Retrieves a PyAnnote voice activity detection pipeline and moves it to the specified device.
-    The pipeline is loaded only once and reused across subsequent calls.
-    It requires the Hugging Face API token to be set in the HF_TOKEN environment variable.
+    Возвращает пайплайн детекции речевой активности PyAnnote и перемещает его на указанное устройство.
+    Пайплайн загружается только один раз и переиспользуется в последующих вызовах.
+    Требует, чтобы токен Hugging Face API был задан в переменной окружения HF_TOKEN.
     """
     global _PIPELINE
     if _PIPELINE is not None:
@@ -88,8 +88,8 @@ def segment_audio_file(
     device: torch.device = torch.device("cpu"),
 ) -> Tuple[List[torch.Tensor], List[Tuple[float, float]]]:
     """
-    Segments an audio waveform into smaller chunks based on speech activity.
-    The segmentation is performed using a PyAnnote voice activity detection pipeline.
+    Разбивает аудиоволну на более мелкие фрагменты на основе речевой активности.
+    Сегментация выполняется с помощью пайплайна детекции речевой активности PyAnnote.
     """
 
     audio = load_audio(wav_file)

@@ -15,7 +15,7 @@ LONGFORM_THRESHOLD = 25 * SAMPLE_RATE
 
 class GigaAM(nn.Module):
     """
-    Giga Acoustic Model: Self-Supervised Model for Speech Tasks
+    Giga Acoustic Model: самостоятельная (self-supervised) модель для речевых задач
     """
 
     def __init__(self, cfg: omegaconf.DictConfig):
@@ -28,7 +28,7 @@ class GigaAM(nn.Module):
         self, features: Tensor, feature_lengths: Tensor
     ) -> Tuple[Tensor, Tensor]:
         """
-        Perform forward pass through the preprocessor and encoder.
+        Выполняет прямой проход через препроцессор и энкодер.
         """
         features, feature_lengths = self.preprocessor(features, feature_lengths)
         if self._device.type == "cpu":
@@ -46,8 +46,8 @@ class GigaAM(nn.Module):
 
     def prepare_wav(self, wav_file: str) -> Tuple[Tensor, Tensor]:
         """
-        Prepare an audio file for processing by loading it onto
-        the correct device and converting its format.
+        Подготавливает аудиофайл к обработке: загружает его
+        на нужное устройство и конвертирует формат.
         """
         wav = load_audio(wav_file)
         wav = wav.to(self._device).to(self._dtype).unsqueeze(0)
@@ -56,7 +56,7 @@ class GigaAM(nn.Module):
 
     def embed_audio(self, wav_file: str) -> Tuple[Tensor, Tensor]:
         """
-        Extract audio representations using the GigaAM model.
+        Извлекает представления аудио с помощью модели GigaAM.
         """
         wav, length = self.prepare_wav(wav_file)
         encoded, encoded_len = self.forward(wav, length)
@@ -64,7 +64,7 @@ class GigaAM(nn.Module):
 
     def to_onnx(self, dir_path: str = ".", dtype: torch.dtype = torch.float32) -> None:
         """
-        Export onnx model encoder to the specified dir.
+        Экспортирует ONNX-энкодер модели в указанный каталог.
         """
         with self.encoder.onnx_export_mode():
             self._to_onnx(dir_path, dtype=dtype)
@@ -72,7 +72,7 @@ class GigaAM(nn.Module):
 
     def _to_onnx(self, dir_path: str = ".", dtype: torch.dtype = torch.float32) -> None:
         """
-        Export onnx model encoder to the specified dir.
+        Экспортирует ONNX-энкодер модели в указанный каталог.
         """
         onnx_converter(
             model_name=f"{self.cfg.model_name}_encoder",
@@ -85,7 +85,7 @@ class GigaAM(nn.Module):
 
 class GigaAMASR(GigaAM):
     """
-    Giga Acoustic Model for Speech Recognition
+    Giga Acoustic Model для распознавания речи
     """
 
     def __init__(self, cfg: omegaconf.DictConfig):
@@ -128,8 +128,8 @@ class GigaAMASR(GigaAM):
         self, wav_file: str, word_timestamps: bool = False
     ) -> TranscriptionResult:
         """
-        Transcribes a short audio file into text.
-        Returns TranscriptionResult with optional word-level timestamps.
+        Транскрибирует короткий аудиофайл в текст.
+        Возвращает TranscriptionResult с опциональными таймстампами на уровне слов.
         """
         wav, length = self.prepare_wav(wav_file)
         if length.item() > LONGFORM_THRESHOLD:
@@ -143,16 +143,16 @@ class GigaAMASR(GigaAM):
         self, features: Tensor, feature_lengths: Tensor
     ) -> Tuple[Tensor, Tensor]:
         """
-        Encoder-decoder forward to save model entirely in onnx format.
+        Прямой проход энкодер-декодер для сохранения модели целиком в формате onnx.
         """
         encoded, encoded_len = self.encoder(features, feature_lengths)
         return self.head(encoded), encoded_len
 
     def _to_onnx(self, dir_path: str = ".", dtype: torch.dtype = torch.float32) -> None:
         """
-        Export onnx ASR model.
-        `ctc`:  exported entirely in encoder-decoder format.
-        `rnnt`: exported in encoder/decoder/joint parts separately.
+        Экспортирует ONNX ASR-модель.
+        `ctc`:  экспортируется целиком в формате энкодер-декодер.
+        `rnnt`: экспортируется по частям: энкодер/декодер/joint.
         """
         if "ctc" in self.cfg.model_name:
             saved_forward = self.forward
@@ -202,10 +202,11 @@ class GigaAMASR(GigaAM):
         **kwargs,
     ) -> LongformTranscriptionResult:
         """
-        Transcribes a long audio file by splitting it into segments and
-        then transcribing each segment (batched inference via AudioDataset).
-        Use fr_batch_size and fr_num_workers to control the batched inference.
-        Returns LongformTranscriptionResult with segments containing optional word-level timestamps.
+        Транскрибирует длинный аудиофайл, разбивая его на сегменты и
+        затем транскрибируя каждый сегмент (батчевый инференс через AudioDataset).
+        Управляйте батчевым инференсом через fr_batch_size и fr_num_workers.
+        Возвращает LongformTranscriptionResult с сегментами, содержащими
+        опциональные таймстампы на уровне слов.
         """
         from .vad_utils import segment_audio_file
 
@@ -261,7 +262,7 @@ class GigaAMASR(GigaAM):
 
 class GigaAMEmo(GigaAM):
     """
-    Giga Acoustic Model for Emotion Recognition
+    Giga Acoustic Model для распознавания эмоций
     """
 
     def __init__(self, cfg: omegaconf.DictConfig):
@@ -271,7 +272,7 @@ class GigaAMEmo(GigaAM):
 
     def get_probs(self, wav_file: str) -> Dict[str, float]:
         """
-        Calculate probabilities for each emotion class based on the provided audio file.
+        Вычисляет вероятности для каждого класса эмоций по заданному аудиофайлу.
         """
         wav, length = self.prepare_wav(wav_file)
         encoded, _ = self.forward(wav, length)
@@ -286,7 +287,7 @@ class GigaAMEmo(GigaAM):
 
     def forward_for_export(self, features: Tensor, feature_lengths: Tensor) -> Tensor:
         """
-        Encoder-decoder forward to save model entirely in onnx format.
+        Прямой проход энкодер-декодер для сохранения модели целиком в формате onnx.
         """
         encoded, _ = self.encoder(features, feature_lengths)
         enc_pooled = encoded.mean(dim=-1)
@@ -294,7 +295,7 @@ class GigaAMEmo(GigaAM):
 
     def _to_onnx(self, dir_path: str = ".", dtype: torch.dtype = torch.float32) -> None:
         """
-        Export onnx Emo model.
+        Экспортирует ONNX Emo-модели.
         """
         saved_forward = self.forward
         self.forward = self.forward_for_export  # type: ignore[assignment, method-assign]
