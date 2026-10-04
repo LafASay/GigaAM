@@ -56,11 +56,11 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip wheel setuptools
-        pip install --no-cache-dir -e ".[longform,tests,train]"
+        pip install --no-cache-dir -e ".[longform,tests]"
 
     - name: Show disk usage after install
       run: df -h
-    
+
     - name: Run model loading tests
       run: |
         pytest -v tests/test_loading.py -m partial --tb=short
@@ -86,10 +86,6 @@ jobs:
     - name: Run timestamps tests
       run: |
         pytest -v tests/test_timestamps.py --tb=short
-
-    - name: Run training tests
-      run: |
-        pytest -v tests/test_training.py --tb=short
 
     - name: Run normalization tests
       run: |
@@ -125,16 +121,16 @@ jobs:
     
     - name: Check code formatting with black
       run: |
-        black --check --diff gigaam/ tests/ triton_scripts/ train_utils/*.py
+        black --check --diff gigaam/ tests/
 
     - name: Check imports with isort
       run: |
-        isort --check-only --diff gigaam/ tests/ triton_scripts/ train_utils/*.py
+        isort --check-only --diff gigaam/ tests/
 
     - name: Lint with flake8
       run: |
-        flake8 --ignore=E203,W503,W504 --max-line-length=120 --statistics gigaam/ tests/ triton_scripts/ train_utils/*.py
+        flake8 --ignore=E203,W503,W504 --max-line-length=120 --statistics gigaam/ tests/
     
     - name: Type check with mypy
       run: |
-        mypy gigaam/ train_utils/*.py --ignore-missing-imports --no-strict-optional
+        mypy gigaam/ --ignore-missing-imports --no-strict-optional

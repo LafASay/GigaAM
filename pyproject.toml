@@ -40,12 +40,6 @@ longform = [
     "torchcodec==0.10",
     "transformers==5.*",
 ]
-train = [
-    "editdistance",
-    "lightning>=2.6",
-    "tensorboard>=2.20",
-    "wandb>=0.25",
-]
 tests = [
     "pytest",
     "pytest-cov",

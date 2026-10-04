@@ -165,7 +165,7 @@ def load_model(
     download_root: Optional[str] = None,
 ) -> Union[GigaAM, GigaAMEmo, GigaAMASR]:
     """
-    Load the GigaAM model by name, or a local ``.ckpt`` from fine-tuning with ``train_utils/train.py``.
+    Load the GigaAM model by name, or a local ``.ckpt`` from fine-tuning.
 
     Parameters
     ----------

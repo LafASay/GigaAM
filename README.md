@@ -1,8 +1,7 @@
-# GigaAM: the family of open-source acoustic models for speech processing
+# GigaAM: семейство открытых акустических моделей для обработки речи
 
 <div align="center" style="line-height: 1;">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![arXiv](https://img.shields.io/badge/arXiv-2506.01192-b31b1b.svg)](https://arxiv.org/abs/2506.01192)
 [![HuggingFace](https://img.shields.io/badge/🤗%20HuggingFace-Models-yellow.svg)](https://huggingface.co/collections/ai-sage/gigaam)
@@ -12,81 +11,77 @@
 
 <hr>
 
-![plot](./assets/gigaam_scheme.svg)
-
-## Latest News
-* 2026/06 — GigaAM Multilingual: 220M / 600M encoders pre-trained on **2M hours** across **70+ languages**; charwise CTC ASR with best-in-class WER on Russian, Kazakh, Kyrgyz, and Uzbek (moderate on English). Our [research paper](https://arxiv.org/abs/2607.10371) was accepted to InterSpeech 2026!
-* 2026/04 — [model fine-tuning](#model-fine-tuning) (CTC / RNNT), word-level timestamps, [Triton Inference Server](#triton-inference-server-and-tensorrt)
-* 2025/11 — GigaAM-v3: **30%** WER reduction on new data domains; GigaAM-v3-e2e: end-to-end transcription support (**70:30** win in Side-by-Side vs Whisper-large-v3)
-* 2025/06 — Our [research paper on GigaAM](https://arxiv.org/abs/2506.01192) was accepted to InterSpeech 2025!
-* 2024/12 — [MIT License](./LICENSE), GigaAM-v2 (**-15%** and **-12%** WER Reduction for CTC and RNN-T models, respectively), [ONNX export support](#onnx-export-and-inference)
-* 2024/05 — GigaAM-RNNT (**-19%** WER Reduction), [long-form inference using external Voice Activity Detection](#model-inference)
-* 2024/04 — GigaAM Release: GigaAM-CTC ([SoTA Speech Recognition model for the Russian language](#model-performance)), [GigaAM-Emo](#model-performance)
+## Последние обновления
+* **2026/06** — GigaAM Multilingual: энкодеры 220M / 600M, предобучение на **2M часов** и **70+ языках**; посимвольный CTC ASR с лучшим WER на русском, казахском, киргизском и узбекском (умеренно на английском). Наша [научная статья](https://arxiv.org/abs/2607.10371) принята на InterSpeech 2026!
+* **2026/04** — [дообучение моделей](#дообучение-моделей) (CTC / RNNT), таймстемпы на уровне слов, [Triton Inference Server](#triton-inference-server-и-tensorrt)
+* **2025/11** — GigaAM-v3: снижение WER на **30%** на новых доменах данных; GigaAM-v3-e2e: end-to-end распознавание речи (**70:30** в side-by-side сравнении против Whisper-large-v3)
+* **2025/06** — Наша [научная статья о GigaAM](https://arxiv.org/abs/2506.01192) принята на InterSpeech 2025!
+* **2024/12** — GigaAM-v2 (**снижение WER на 15% и 12%** для CTC и RNN-T моделей), [поддержка экспорта в ONNX](#конвертация-в-onnx-и-использование-графа)
+* **2024/05** — GigaAM-RNNT (**снижение WER на 19%**), [распознавание речи на длинных аудиозаписях с помощью внешней VAD-модели](#основные-функции)
+* **2024/04** — Релиз GigaAM: GigaAM-CTC ([Лучшая открытая модель для распознавания речи на русском языке](#качество-моделей)), [GigaAM-Emo](#качество-моделей)
 
 ---
 
-## Setup
+## Установка
 
-### Requirements
+### Требования
 - Python ≥ 3.10
-- [ffmpeg](https://ffmpeg.org/) installed and added to your system's PATH
+- [ffmpeg](https://ffmpeg.org/) установлен и добавлен в переменную PATH системы
 
-### Install the GigaAM Package
+### Установка пакета GigaAM
 
 ```bash
-# Clone the repository
-git clone https://github.com/salute-developers/GigaAM.git
+# Клонировать репозиторий
+git clone https://github.com/salute-developers/GigaAM.git  
 cd GigaAM
 
-# Install the package requirements
+# Установить зависимости
 pip install -e .[torch]
 
-# (optionally) Verify the installation:
+# (опционально) Проверить установку:
 pip install -e ".[tests]"
-pytest -v tests/test_loading.py -m partial  # or `-m full` to test all models
+pytest -v tests/test_loading.py -m partial  # или `-m full` для тестирования всех моделей
 ```
 
 ---
 
-## GigaAM overview
+## Обзор GigaAM
 
-GigaAM is a [Conformer](https://arxiv.org/pdf/2005.08100.pdf)-based foundational model (220M–600M parameters) pre-trained on diverse speech data — Russian for the `v1`–`v3` lines, and 70+ languages for the `multilingual` line. It serves as the backbone for the entire GigaAM family, enabling state-of-the-art fine-tuned performance in speech recognition and emotion recognition. We fine-tuned the GigaAM encoder for ASR using [CTC](https://www.cs.toronto.edu/~graves/icml_2006.pdf) and [RNNT](https://arxiv.org/abs/1211.3711) decoders. The GigaAM family includes four lines of models:
+GigaAM - фундаментальная акустическая модель на базе архитектуры [Conformer](https://arxiv.org/pdf/2005.08100.pdf) (220M–600M параметров), предобученная на разнообразных речевых данных — русскоязычных для линеек `v1`–`v3` и на 70+ языках для линейки `multilingual`. Она служит основой для всего семейства GigaAM и обеспечивает высокое качество при дообучении на задачи распознавания речи и распознавания эмоций. Для задач автоматического распознавания речи (ASR) мы дообучили энкодер GigaAM с декодерами на основе [CTC](https://www.cs.toronto.edu/~graves/icml_2006.pdf) и [RNNT](https://arxiv.org/abs/1211.3711). Семейство GigaAM включает четыре линейки моделей:
 
-| | Pretrain Method | Pretrain (hours) | ASR (hours) | Available Versions |
+| | Метод предобучения | Объём предобучения (часы) | Объём данных ASR (часы) | Доступные версии |
 | :--- | :--- | :--- | :--- | :---: |
-| **v1** | [Wav2vec 2.0](https://arxiv.org/abs/2006.11477) | 50,000 | 2,000 | `v1_ssl`, `emo`, `v1_ctc`, `v1_rnnt` |
-| **v2** | [HuBERT–CTC](https://arxiv.org/abs/2506.01192) | 50,000 | 2,000 | `v2_ssl`, `v2_ctc`, `v2_rnnt` |
-| **v3** | HuBERT–CTC | 700,000 | 4,000 | `v3_ssl`, `v3_ctc`, `v3_rnnt`, `v3_e2e_ctc`, `v3_e2e_rnnt` |
-| **multilingual** | HuBERT–style | 2,000,000 | 50,000 | `multilingual_ssl`, `multilingual_large_ssl`, `multilingual_ctc`, `multilingual_large_ctc` |
+| **v1** | [Wav2vec 2.0](https://arxiv.org/abs/2006.11477) | 50 000 | 2 000 | `v1_ssl`, `emo`, `v1_ctc`, `v1_rnnt` |
+| **v2** | [HuBERT–CTC](https://arxiv.org/abs/2506.01192) | 50 000 | 2 000 | `v2_ssl`, `v2_ctc`, `v2_rnnt` |
+| **v3** | HuBERT–CTC | 700 000 | 4 000 | `v3_ssl`, `v3_ctc`, `v3_rnnt`, `v3_e2e_ctc`, `v3_e2e_rnnt` |
+| **multilingual** | HuBERT–style | 2 000 000 | 50 000 | `multilingual_ssl`, `multilingual_large_ssl`, `multilingual_ctc`, `multilingual_large_ctc` |
 
-Where `v3_e2e_ctc` and `v3_e2e_rnnt` support punctuation and text normalization.
-The `multilingual_*` line provides 220M / 600M SSL backbones and charwise CTC ASR models covering multiple languages.
+Версии `v3_e2e_ctc` и `v3_e2e_rnnt` поддерживают пунктуацию и нормализацию текста.
+Линейка `multilingual_*` предоставляет SSL-энкодеры на 220M / 600M параметров и посимвольные CTC-модели ASR с поддержкой нескольких языков.
 
-## Model Performance
+## Качество моделей
 
-`GigaAM-v3` training incorporates new internal datasets: callcenter, music, speech with atypical characteristics, and voice messages. As a result, the models perform on average **30%** better on these new domains while maintaining the same quality as `GigaAM-v2` on public benchmarks. In end-to-end ASR comparisons of `e2e_ctc` and `e2e_rnnt` against Whisper (judged via independent LLM-as-a-Judge side-by-side) GigaAM models win by an average margin of **70:30**. Our emotion recognition model `GigaAM-Emo` outperforms existing models by **15%** Macro F1-Score.
-
-For detailed results, see [here](./evaluation.md).
+В обучение `GigaAM-v3` были включены новые внутренние наборы данных: колл-центр, музыка, речь с атипичными характеристиками и голосовые сообщения. В результате модели в среднем демонстрируют улучшение на **30%** (по метрике WER) на новых доменах при уровне качества `GigaAM-v2` на публичных бенчмарках. В сравнении end-to-end моделей (`e2e_ctc` и `e2e_rnnt`) с Whisper (оценка проводилась с использованием внешней LLM в формате side-by-side) модели GigaAM выигрывают в соотношении **70:30**. Наша модель распознавания эмоций `GigaAM-Emo` превосходит существующие аналоги на **15%** по метрике Macro F1-Score.
 
 ---
 
-## Usage
+## Использование
 
-### Model inference
+### Основные функции
 
-**Note:** ASR with `.transcribe` function is applicable for audio **only up to 25 seconds**. To enable `.transcribe_longform` install the additional [pyannote.audio](https://github.com/pyannote/pyannote-audio) dependencies
+**Важно:** функция `.transcribe` для ASR применима только к аудиофайлам **до 25 секунд**. Для использования `.transcribe_longform` необходимо установить дополнительные зависимости [pyannote.audio](https://github.com/pyannote/pyannote-audio).
 
 <details>
-<summary>Longform setup instruction</summary>
+<summary>Инструкция по настройке распознавания длинных аудио</summary>
 
-* Generate [Hugging Face API token](https://huggingface.co/docs/hub/security-tokens)
-* Accept the conditions to access [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0) files and content
+* Сгенерируйте [токен API Hugging Face](https://huggingface.co/docs/hub/security-tokens)
+* Примите условия для получения доступа к контенту [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)
 
 ```bash
 pip install -e ".[longform]"
-# optionally run longform testing
+# опционально: запустить тесты для длинной транскрибации
 pip install -e ".[tests]"
-HF_TOKEN=<your hf token> pytest -v tests/test_longform.py
+HF_TOKEN=<ваш hf токен> pytest -v tests/test_longform.py
 ```
 </details>
 
@@ -96,47 +91,43 @@ HF_TOKEN=<your hf token> pytest -v tests/test_longform.py
 ```python
 import gigaam
 
-# Load test audio
+# Загрузка тестового аудио
 audio_path = gigaam.utils.download_short_audio()
 long_audio_path = gigaam.utils.download_long_audio()
 
-# Audio embeddings
-model_name = "v3_ssl"       # Options: `v1_ssl`, `v2_ssl`, `v3_ssl`, `multilingual_ssl`, `multilingual_large_ssl`
+# Аудио-эмбеддинги
+model_name = "v3_ssl"       # Варианты: `v1_ssl`, `v2_ssl`, `v3_ssl`, `multilingual_ssl`, `multilingual_large_ssl`
 model = gigaam.load_model(model_name)
 embedding, _ = model.embed_audio(audio_path)
 print(embedding)
 
-# ASR
-model_name = "v3_e2e_rnnt"  # Options: any model version with suffix `_ctc` or `_rnnt`
+# Распознавание речи
+model_name = "v3_e2e_rnnt"  # Варианты: любые версии с суффиксами `_ctc` или `_rnnt`
 model = gigaam.load_model(model_name)
 transcription = model.transcribe(audio_path)
 print(transcription)
 
-# ASR with word-level timestamps
+# Распознавание речи с таймстемпами на уровне слов
 result = model.transcribe(audio_path, word_timestamps=True)
 for word in result.words:
     print(f"  [{word.start:.2f} - {word.end:.2f}] {word.text}")
 
-# and long-form ASR
+# Распознавание на длинном аудио
 import os
-os.environ["HF_TOKEN"] = <HF_TOKEN with read access to "pyannote/segmentation-3.0">
+os.environ["HF_TOKEN"] = "<HF_TOKEN с доступом на чтение к 'pyannote/segmentation-3.0'>"
 result = model.transcribe_longform(long_audio_path)
 for segment in result:
    print(f"[{gigaam.format_time(segment.start)} - {gigaam.format_time(segment.end)}]: {segment.text}")
 
-# Emotion recognition
+# Распознавание эмоций
 model = gigaam.load_model("emo")
 emotion2prob = model.get_probs(audio_path)
 print(", ".join([f"{emotion}: {prob:.3f}" for emotion, prob in emotion2prob.items()]))
 ```
 
-### Model Fine-tuning
+### Загрузка из Hugging Face
 
-CTC, RNNT, and SSL models can be fine-tuned on custom data using PyTorch Lightning. For a detailed description of all training arguments, see [`train_utils/README.md`](./train_utils/README.md). End-to-end examples with different VRAM constraints are available in [`train_utils/example.ipynb`](./train_utils/example.ipynb).
-
-### Loading from Hugging Face
-
-> **Note:** Install requirements from the [example](./colab_example.ipynb).
+> Используйте установку зависимостей из [примера](./colab_example.ipynb).
 
 ```python
 from transformers import AutoModel
@@ -146,43 +137,43 @@ model = AutoModel.from_pretrained("ai-sage/GigaAM-v3", revision="e2e_rnnt", trus
 model = AutoModel.from_pretrained("ai-sage/GigaAM-Multilingual", revision="ctc", trust_remote_code=True)
 ```
 
-### ONNX Export and Inference
+### Конвертация в ONNX и использование графа
 
-> **Note:** `to_onnx` exports in **fp32** by default. Pass `dtype=torch.float16` for GPU deployment — it is faster and uses less VRAM. GPU support can be enabled with uninstalling onnxruntime and running `pip install onnxruntime-gpu==1.22.*`.
+> **Примечание:** `to_onnx` по умолчанию экспортирует в **fp32**. Для GPU рекомендуется передать `dtype=torch.float16` — это ускоряет инференс и снижает потребление VRAM. GPU будет использоваться после удаления onnxruntime и установки `pip install onnxruntime-gpu==1.22.*`.
 
-1. Export the model to ONNX using the `model.to_onnx` method:
+1. Экспорт модели в ONNX с помощью метода `model.to_onnx`:
    ```python
    onnx_dir = "onnx"
-   model_version = "v3_ctc"  # Options: any version
+   model_version = "v3_ctc"  # Варианты: любая версия модели
 
    model = gigaam.load_model(model_version)
-   model.to_onnx(dir_path=onnx_dir, dtype=torch.float32)  # or fp16 (recommended for GPU)
+   model.to_onnx(dir_path=onnx_dir, dtype=torch.float32)  # или fp16 (рекомендовано для GPU)
    ```
 
-2. Run ONNX inference:
+2. Запуск с использованием ONNX:
    ```python
    from gigaam.onnx_utils import load_onnx, infer_onnx
 
    sessions, model_cfg = load_onnx(onnx_dir, model_version)
    result = infer_onnx([audio_path], model_cfg, sessions)
-   print(result[0])
+   print(result[0])  # str для ctc / rnnt версий, np.ndarray для ssl / emo
 
-   # or use the whole dataset
+   # или для целого датасета
    texts = infer_onnx("/path/to/eval/manifest.tsv", model_cfg, sessions)
    print(texts[0])
    ```
 
-These and more advanced (e.g. custom audio loading, batching) examples can be found in the [Colab notebook](https://colab.research.google.com/github/salute-developers/GigaAM/blob/main/colab_example.ipynb).
+Эти и более продвинутые примеры (кастомная загрузка аудио, батчинг) доступны в [Colab notebook](https://colab.research.google.com/github/salute-developers/GigaAM/blob/main/colab_example.ipynb).
 
-### Triton Inference Server and TensorRT
+### Triton Inference Server и TensorRT
 
-All speech recognition models can also be used in a server environment in ONNX/TRT format through Triton Inference Server. For setup instructions, model conversion, and deployment details, see the [Triton Inference Server documentation](./triton_scripts/README.md).
+Все модели распознавания речи также можно использовать в серверном окружении в формате ONNX/TRT через Triton Inference Server. Инструкции по настройке, конвертации моделей и развёртыванию описаны в [документации Triton Inference Server](./triton_scripts/README.md).
 
 ---
 
 ## Citation
 
-If you use GigaAM in your research, please cite our papers:
+Если применяете GigaAM в своих исследованиях, используйте ссылки на наши статьи:
 
 ```bibtex
 @misc{gigaam_multilingual,
@@ -206,7 +197,7 @@ If you use GigaAM in your research, please cite our papers:
 }
 ```
 
-## Links
+## Ссылки
 * [[arxiv] GigaAM Multilingual: Foundation Model for Underrepresented Languages](https://arxiv.org/abs/2607.10371)
 * [[arxiv] GigaAM: Efficient Self-Supervised Learner for Speech Recognition](https://arxiv.org/abs/2506.01192)
 * [[habr] GigaAM-v3: открытая SOTA-модель распознавания речи на русском](https://habr.com/ru/companies/sberdevices/articles/973160/)
