@@ -28,11 +28,24 @@ __all__ = [
     "normalize_raw_text",
 ]
 
-# Default cache directory
-_CACHE_DIR = os.path.expanduser("~/.cache/gigaam")
+# Default cache directory: inside the repository, overridable via GIGAAM_CACHE_DIR.
+# Falls back to ~/.cache/gigaam when the repo location is not writable (e.g. non-editable install).
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_CACHE_DIR = os.environ.get("GIGAAM_CACHE_DIR") or (
+    os.path.join(_REPO_ROOT, "gigaam_cache")
+    if os.access(_REPO_ROOT, os.W_OK)
+    else os.path.expanduser("~/.cache/gigaam")
+)
 # Url with model checkpoints
 _URL_DIR = "https://cdn.chatwm.opensmodel.sberdevices.ru/GigaAM"
 _DOWNLOAD_RETRIES = 3
+
+
+def _hf_cache_dir() -> str:
+    """Каталог HF-hub кэша для диаризации: HF_HUB_CACHE, иначе <_CACHE_DIR>/hf."""
+    return os.environ.get("HF_HUB_CACHE") or os.path.join(_CACHE_DIR, "hf")
+
+
 _MODEL_HASHES = {
     "v3_ctc": "73413e7be9c6a5935827bfab5c0dd678",
     "v3_rnnt": "0fd2c9a1ff66abd8d32a3a07f7592815",
@@ -178,7 +191,9 @@ def load_model(
         Устройство, на которое загрузить модель. По умолчанию "cuda", если
         доступно, затем "mps", иначе "cpu".
     download_root : Optional[str]
-        Каталог для скачивания модели. По умолчанию "~/.cache/gigaam".
+        Каталог для скачивания модели. По умолчанию берётся из переменной
+        окружения ``GIGAAM_CACHE_DIR``, иначе каталог ``gigaam_cache`` в корне
+        репозитория (или "~/.cache/gigaam", если он недоступен для записи).
     """
     device_obj = _normalize_device(device)
 

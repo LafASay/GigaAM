@@ -10,3 +10,4 @@ onnx
 .mypy_cache
 .pytest_cache
 scripts
+gigaam_cache

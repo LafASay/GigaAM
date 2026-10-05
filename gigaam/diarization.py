@@ -30,8 +30,11 @@ class Diarizer:
     и для атрибуции спикеров словам.
     """
 
-    def __init__(self, device: Optional[torch.device] = None):
+    def __init__(
+        self, device: Optional[torch.device] = None, cache_dir: Optional[str] = None
+    ):
         self._device = device
+        self._cache_dir = cache_dir
         self._model = None
         self._processor = None
 
@@ -53,10 +56,19 @@ class Diarizer:
                 AutoProcessor,
             )
 
-            self._processor = AutoProcessor.from_pretrained(_HF_MODEL_ID)
+            if self._cache_dir is None:
+                from . import _hf_cache_dir
+
+                self._cache_dir = _hf_cache_dir()
+
+            self._processor = AutoProcessor.from_pretrained(
+                _HF_MODEL_ID, cache_dir=self._cache_dir
+            )
             self._model = (
                 AutoModelForAudioFrameClassification.from_pretrained(
-                    _HF_MODEL_ID, dtype=torch.float32
+                    _HF_MODEL_ID,
+                    cache_dir=self._cache_dir,
+                    dtype=torch.float32,
                 )
                 .eval()
                 .to(self.device)

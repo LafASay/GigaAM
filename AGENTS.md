@@ -22,7 +22,7 @@ mypy gigaam/ --ignore-missing-imports --no-strict-optional   # только giga
 
 ## Тесты
 
-Тестовые WAV закоммичены в `tests/assets/` (`example.wav`, `long_example.wav`) — сеть для аудио не нужна. Чекпойнты моделей (~ГБ) скачиваются с CDN Сбера в `~/.cache/gigaam` при первом обращении `load_model` (после этого — офлайн); для longform/диаризации нужен снапшот `nvidia/Nemotron-3-Diarization` в кэше HF (не gated, токен не нужен). Работа занимает минуты:
+Тестовые WAV закоммичены в `tests/assets/` (`example.wav`, `long_example.wav`) — сеть для аудио не нужна. Чекпойнты моделей (~ГБ) скачиваются с CDN Сбера в `gigaam_cache/` в корне репозитория при первом обращении `load_model` (переопределяется `GIGAAM_CACHE_DIR`; fallback `~/.cache/gigaam`, если корень репозитория не записываем; каталог в .gitignore — используется для офлайн-сборки контейнера, см. `scripts/preload_models.py`). Для longform/диаризации нужен снапшот `nvidia/Nemotron-3-Diarization` (не gated, токен не нужен): он качается через HF-hub, но `Diarizer` передаёт `cache_dir` явно — по умолчанию `gigaam_cache/hf` (переопределяется `HF_HUB_CACHE` или параметром `Diarizer(cache_dir=...)`). Работа занимает минуты:
 
 - Быстро/офлайн: `pytest -v tests/test_normalize.py` (чистая нормализация текста; нужен extra `[tests]`).
 - Дефолт CI: `pytest -v tests/test_loading.py -m partial` — облегчённое подмножество.
