@@ -7,7 +7,13 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from .preprocess import SAMPLE_RATE, load_audio
-from .types import LongformTranscriptionResult, Segment, TranscriptionResult, Word
+from .types import (
+    DiarizationSegment,
+    LongformTranscriptionResult,
+    Segment,
+    TranscriptionResult,
+    Word,
+)
 from .utils import AudioDataset, onnx_converter
 
 LONGFORM_THRESHOLD = 25 * SAMPLE_RATE
@@ -69,6 +75,15 @@ class GigaAM(nn.Module):
         with self.encoder.onnx_export_mode():
             self._to_onnx(dir_path, dtype=dtype)
         omegaconf.OmegaConf.save(self.cfg, f"{dir_path}/{self.cfg.model_name}.yaml")
+
+    def diarize(self, wav_file: str) -> List["DiarizationSegment"]:
+        """
+        Определяет "кто говорил когда" в аудиофайле с помощью модели
+        Nemotron-3-Diarization. Длительность аудио не ограничена.
+        """
+        from .diarization import Diarizer
+
+        return Diarizer(device=self._device).diarize(wav_file)
 
     def _to_onnx(self, dir_path: str = ".", dtype: torch.dtype = torch.float32) -> None:
         """
@@ -197,6 +212,7 @@ class GigaAMASR(GigaAM):
         self,
         wav_file: str,
         word_timestamps: bool = False,
+        diarize: bool = False,
         fr_batch_size: int = 16,
         fr_num_workers: int = 0,
         **kwargs,
@@ -205,14 +221,17 @@ class GigaAMASR(GigaAM):
         Транскрибирует длинный аудиофайл, разбивая его на сегменты и
         затем транскрибируя каждый сегмент (батчевый инференс через AudioDataset).
         Управляйте батчевым инференсом через fr_batch_size и fr_num_workers.
+        При diarize=True сегментам и словам присваивается индекс спикера
+        (модель Nemotron-3-Diarization; она же определяет речевые области
+        для нарезки).
         Возвращает LongformTranscriptionResult с сегментами, содержащими
-        опциональные таймстампы на уровне слов.
+        опциональные таймстампы на уровне слов и опциональных спикеров.
         """
-        from .vad_utils import segment_audio_file
+        from .diarization import Diarizer
+        from .segmentation import chunk_speech
 
-        segments, boundaries = segment_audio_file(
-            wav_file, SAMPLE_RATE, device=self._device, **kwargs
-        )
+        chunks = chunk_speech(wav_file, SAMPLE_RATE, device=self._device, **kwargs)
+        segments, boundaries = chunks.segments, chunks.boundaries
 
         if not segments:
             return LongformTranscriptionResult(segments=[])
@@ -237,24 +256,46 @@ class GigaAMASR(GigaAM):
             ):
                 seg_start, seg_end = boundaries[idx]
                 idx += 1
+                seg_speaker = None
+                if diarize:
+                    seg_speaker = Diarizer.dominant_speaker(
+                        chunks.probs, seg_start, seg_end, chunks.frame_shift
+                    )
                 if word_timestamps:
+                    out_words: List[Word] = []
+                    for w in words or []:
+                        w_speaker = None
+                        if diarize:
+                            w_speaker = Diarizer.dominant_speaker(
+                                chunks.probs,
+                                seg_start + w.start,
+                                seg_start + w.end,
+                                chunks.frame_shift,
+                            )
+                        out_words.append(
+                            Word(
+                                text=w.text,
+                                start=round(w.start + seg_start, 3),
+                                end=round(w.end + seg_start, 3),
+                                speaker=w_speaker,
+                            )
+                        )
                     result_segments.append(
                         Segment(
                             text=text,
                             start=seg_start,
                             end=seg_end,
-                            words=[
-                                Word(
-                                    text=w.text,
-                                    start=round(w.start + seg_start, 3),
-                                    end=round(w.end + seg_start, 3),
-                                )
-                                for w in words or []
-                            ],
+                            words=out_words,
+                            speaker=seg_speaker,
                         )
                     )
                 else:
                     result_segments.append(
-                        Segment(text=text, start=seg_start, end=seg_end)
+                        Segment(
+                            text=text,
+                            start=seg_start,
+                            end=seg_end,
+                            speaker=seg_speaker,
+                        )
                     )
         return LongformTranscriptionResult(segments=result_segments)

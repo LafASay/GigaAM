@@ -12,10 +12,11 @@
 <hr>
 
 ## Последние обновления
+* **2026/10** — [диаризация спикеров](#диаризация-спикеров) на модели [Nemotron-3-Diarization](https://huggingface.co/nvidia/Nemotron-3-Diarization): сегментация длинных аудио и определение "кто говорил когда" (до 8 спикеров) без Hugging Face токена
 * **2026/04** — [дообучение моделей](#дообучение-моделей) (CTC / RNNT), таймстемпы на уровне слов, [Triton Inference Server](#triton-inference-server-и-tensorrt)
 * **2025/11** — GigaAM-v3: снижение WER на **30%** на новых доменах данных; GigaAM-v3-e2e: end-to-end распознавание речи (**70:30** в side-by-side сравнении против Whisper-large-v3)
 * **2025/06** — Наша [научная статья о GigaAM](https://arxiv.org/abs/2506.01192) принята на InterSpeech 2025!
-* **2024/05** — [Поддержка распознавания речи на длинных аудиозаписях с помощью внешней VAD-модели](#основные-функции)
+* **2024/05** — [Поддержка распознавания речи на длинных аудиозаписях](#основные-функции)
 
 ---
 
@@ -59,24 +60,18 @@ GigaAM - акустическая модель на базе архитекту�
 ---
 
 ## Использование
-
 ### Основные функции
 
-**Важно:** функция `.transcribe` для ASR применима только к аудиофайлам **до 25 секунд**. Для использования `.transcribe_longform` необходимо установить дополнительные зависимости [pyannote.audio](https://github.com/pyannote/pyannote-audio).
-
-<details>
-<summary>Инструкция по настройке распознавания длинных аудио</summary>
-
-* Сгенерируйте [токен API Hugging Face](https://huggingface.co/docs/hub/security-tokens)
-* Примите условия для получения доступа к контенту [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)
+**Важно:** функция `.transcribe` для ASR применима только к аудиофайлам **до 25 секунд**. Для длинных аудио и диаризации установите дополнительные зависимости:
 
 ```bash
 pip install -e ".[longform]"
-# опционально: запустить тесты для длинной транскрибации
+# опционально: запустить тесты длинной транскрибации и диаризации
 pip install -e ".[tests]"
-HF_TOKEN=<ваш hf токен> pytest -v tests/test_longform.py
+pytest -v tests/test_longform.py tests/test_diarization.py
 ```
-</details>
+
+Нарезка длинного аудио и диаризация выполняются открытой моделью [Nemotron-3-Diarization](https://huggingface.co/nvidia/Nemotron-3-Diarization) — она не gated и не требует Hugging Face токена (веса (~380 МБ) скачиваются в кэш Hugging Face при первом запуске).
 
 <br>
 
@@ -105,12 +100,30 @@ for word in result.words:
     print(f"  [{word.start:.2f} - {word.end:.2f}] {word.text}")
 
 # Распознавание на длинном аудио
-import os
-os.environ["HF_TOKEN"] = "<HF_TOKEN с доступом на чтение к 'pyannote/segmentation-3.0'>"
 result = model.transcribe_longform(long_audio_path)
 for segment in result:
    print(f"[{gigaam.format_time(segment.start)} - {gigaam.format_time(segment.end)}]: {segment.text}")
 ```
+
+### Диаризация спикеров
+
+Модель [Nemotron-3-Diarization](https://huggingface.co/nvidia/Nemotron-3-Diarization) (Sortformer, до 8 спикеров) определяет "кто говорил когда". Индекс спикера соответствует порядку его первого появления в аудио.
+
+```python
+# Диаризация без транскрибации: список сегментов (start, end, speaker)
+for seg in model.diarize(long_audio_path):
+    print(f"[{seg.start:.2f} - {seg.end:.2f}] speaker_{seg.speaker}")
+
+# Транскрибация длинного аудио со спикерами на сегментах и словах
+result = model.transcribe_longform(long_audio_path, word_timestamps=True, diarize=True)
+for segment in result:
+    print(f"[{gigaam.format_time(segment.start)} - {gigaam.format_time(segment.end)}] "
+          f"speaker_{segment.speaker}: {segment.text}")
+    for word in segment.words:
+        print(f"    [{word.start:.2f} - {word.end:.2f}] speaker_{word.speaker}: {word.text}")
+```
+
+Одна и та же модель диаризации используется и для нарезки длинного аудио на ASR-чанки (объединение активности всех спикеров заменяет VAD), поэтому дополнительных зависимостей не требуется.
 
 ### Загрузка из Hugging Face
 

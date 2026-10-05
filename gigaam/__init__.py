@@ -10,13 +10,18 @@ import torch
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
+from .diarization import DiarizationResult, Diarizer
 from .model import GigaAM, GigaAMASR
 from .preprocess import load_audio
+from .types import DiarizationSegment
 from .utils import format_time, normalize_raw_text
 
 __all__ = [
     "GigaAM",
     "GigaAMASR",
+    "Diarizer",
+    "DiarizationResult",
+    "DiarizationSegment",
     "load_audio",
     "format_time",
     "load_model",

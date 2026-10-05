@@ -18,6 +18,7 @@ class Word:
     text: str
     start: float
     end: float
+    speaker: Optional[int] = None
 
 
 @dataclass
@@ -35,6 +36,14 @@ class Segment:
     start: float
     end: float
     words: Optional[List[Word]] = None
+    speaker: Optional[int] = None
+
+
+@dataclass
+class DiarizationSegment:
+    start: float
+    end: float
+    speaker: int
 
 
 @dataclass

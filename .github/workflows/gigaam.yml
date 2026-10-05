@@ -70,10 +70,12 @@ jobs:
         pytest -v tests/test_batching.py --tb=short
     
     - name: Run longform tests
-      env:
-        HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
         pytest -v tests/test_longform.py --tb=short
+
+    - name: Run diarization tests
+      run: |
+        pytest -v tests/test_diarization.py --tb=short
 
     - name: Run onnx tests
       run: |
