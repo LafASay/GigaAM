@@ -36,6 +36,11 @@ longform = [
     "torchaudio>=2.6",
     "transformers>=5.18.0",
 ]
+api = [
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+]
 tests = [
     "pytest",
     "pytest-cov",
