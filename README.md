@@ -34,10 +34,9 @@ git clone https://github.com/salute-developers/GigaAM.git
 cd GigaAM
 
 # Установить зависимости
-pip install -e .[torch]
+pip install -e .
 
-# (опционально) Проверить установку:
-pip install -e ".[tests]"
+# Проверить установку:
 pytest -v tests/test_loading.py -m partial  # или `-m full` для тестирования всех моделей
 ```
 
@@ -62,12 +61,9 @@ GigaAM - акустическая модель на базе архитекту�
 ## Использование
 ### Основные функции
 
-**Важно:** функция `.transcribe` для ASR применима только к аудиофайлам **до 25 секунд**. Для длинных аудио и диаризации установите дополнительные зависимости:
+**Важно:** функция `.transcribe` для ASR применима только к аудиофайлам **до 25 секунд**. Для длинных аудио и диаризации:
 
 ```bash
-pip install -e ".[longform]"
-# опционально: запустить тесты длинной транскрибации и диаризации
-pip install -e ".[tests]"
 pytest -v tests/test_longform.py tests/test_diarization.py
 ```
 
@@ -136,8 +132,6 @@ result = model.transcribe_longform(long_audio_path, strategy="utterance")
 `server.py` в корне репозитория — простая FastAPI-обёртка: эндпоинт `POST /asr` принимает аудиофайл и возвращает JSON или markdown со временем, спикером и текстом каждой реплики (подряд идущие слова одного спикера склеиваются). Длительность аудио не ограничена — под капотом используется `transcribe_longform` с диаризацией. Стратегия нарезки длинного аудио задаётся query-параметром `chunking` (`vad` — по умолчанию, `speaker`, `utterance`).
 
 ```bash
-pip install -e ".[longform,api]"
-
 # запуск из корня репозитория
 uvicorn server:app --host 0.0.0.0 --port 8000
 ```

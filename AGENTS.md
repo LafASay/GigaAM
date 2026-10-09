@@ -5,13 +5,12 @@
 ## Установка
 
 - Python 3.13; **ffmpeg должен быть в PATH** (`load_audio` вызывает его через shell — отсутствие ffmpeg ломает загрузку аудио с невнятной ошибкой).
-- `pip install -e ".[torch]"` — torch это *опциональный* extra (обычно уже установлен; не переустанавливайте его вслепую).
-- Extra `longform` пинит `torch==2.10.*`; установка обоих extras вместе может конфликтовать по версиям torch.
-- `transcribe_longform` и диаризация дополнительно требуют `pip install -e ".[longform]"` (transformers ≥ 5.18). Модель диаризации [nvidia/Nemotron-3-Diarization](https://huggingface.co/nvidia/Nemotron-3-Diarization) не gated — HF_TOKEN не нужен; веса (~380 МБ) кэшируются HF-хабом при первом запуске.
+- `pip install -e .` — все зависимости (включая torch, transformers, тестовые и линтер-пакеты) в одном списке без extras.
+- `transcribe_longform` и диаризация используют transformers ≥ 5.18. Модель диаризации [nvidia/Nemotron-3-Diarization](https://huggingface.co/nvidia/Nemotron-3-Diarization) не gated — HF_TOKEN не нужен; веса (~380 МБ) кэшируются HF-хабом при первом запуске.
 
 ## Команды
 
-Lint должен точно совпадать с флагами CI — **файла конфигурации** для flake8/mypy нет; флаги живут только в `.github/workflows/gigaam.yml` (примечание: YAML воркфлоу сейчас не парсится — копируйте флаги дословно). Версии линтеров — extra `[lint]` (black==26.1.0, isort==7.0.0, flake8==7.3.0):
+Lint должен точно совпадать с флагами CI — **файла конфигурации** для flake8/mypy нет; флаги живут только в `.github/workflows/gigaam.yml` (примечание: YAML воркфлоу сейчас не парсится — копируйте флаги дословно). Версии линтеров: black==26.1.0, isort==7.0.0, flake8==7.3.0:
 
 ```bash
 black --check --diff gigaam/ tests/          # line-length 88 (pyproject)
@@ -24,7 +23,7 @@ mypy gigaam/ --ignore-missing-imports --no-strict-optional   # только giga
 
 Тестовые WAV закоммичены в `tests/assets/` (`example.wav`, `long_example.wav`) — сеть для аудио не нужна. Чекпойнты моделей (~ГБ) скачиваются с CDN Сбера в `gigaam_cache/` в корне репозитория при первом обращении `load_model` (переопределяется `GIGAAM_CACHE_DIR`; fallback `~/.cache/gigaam`, если корень репозитория не записываем; каталог в .gitignore — используется для офлайн-сборки контейнера, см. `scripts/preload_models.py`). Для longform/диаризации нужен снапшот `nvidia/Nemotron-3-Diarization` (не gated, токен не нужен): он качается через HF-hub, но `Diarizer` передаёт `cache_dir` явно — по умолчанию `gigaam_cache/hf` (переопределяется `HF_HUB_CACHE` или параметром `Diarizer(cache_dir=...)`). Работа занимает минуты:
 
-- Быстро/офлайн: `pytest -v tests/test_normalize.py` (чистая нормализация текста; нужен extra `[tests]`).
+- Быстро/офлайн: `pytest -v tests/test_normalize.py` (чистая нормализация текста).
 - Дефолт CI: `pytest -v tests/test_loading.py -m partial` — облегчённое подмножество.
 - `-m full` повторно скачивает чекпойнт `v3_e2e_rnnt` (медленно; после использования удаляет каждый ckpt).
 - Общие аудио-фикстуры (`test_audio`, `long_audio`) живут в `tests/conftest.py`.

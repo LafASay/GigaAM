@@ -22,31 +22,15 @@ dependencies = [
     "soundfile",
     "sentencepiece",
     "tqdm",
-]
-
-[project.optional-dependencies]
-# Why torch is optional: often preinstalled and reinstall is slow.
-# Older builds also work, pinned extras are recommended.
-torch = [
-    "torch>=2.6",
-    "torchaudio>=2.6",
-]
-longform = [
     "torch>=2.6",
     "torchaudio>=2.6",
     "transformers>=5.18.0",
-]
-api = [
     "fastapi",
     "uvicorn",
     "python-multipart",
-]
-tests = [
     "pytest",
     "pytest-cov",
     "scipy",
-]
-lint = [
     "black==26.1.0",
     "isort==7.0.0",
     "flake8==7.3.0",
