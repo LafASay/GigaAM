@@ -46,7 +46,7 @@ def test_diarization_helpers_pure_numpy():
 
 def test_diarize_structure(test_audio):
     """Проверяет структуру результата model.diarize()."""
-    model = gigaam.load_model("v3_ctc", device="cpu")
+    model = gigaam.load_model("v3_e2e_rnnt", device="cpu")
     segments = model.diarize(test_audio)
 
     assert isinstance(segments, list), "Should return a list"
@@ -65,7 +65,7 @@ def test_diarize_structure(test_audio):
 
 def test_diarize_single_speaker(long_audio):
     """Длинный тестовый файл — чтение одним диктором: должен быть один спикер."""
-    model = gigaam.load_model("v3_ctc", device="cpu")
+    model = gigaam.load_model("v3_e2e_rnnt", device="cpu")
     segments = model.diarize(long_audio)
 
     assert len(segments) > 0, "Should detect speech"
@@ -78,7 +78,7 @@ def test_transcribe_longform_with_diarization(long_audio):
     """Проверяет, что diarize=True проставляет спикеров сегментам и словам."""
     from gigaam.types import LongformTranscriptionResult
 
-    model = gigaam.load_model("v3_ctc", device="cpu")
+    model = gigaam.load_model("v3_e2e_rnnt", device="cpu")
     result = model.transcribe_longform(long_audio, word_timestamps=True, diarize=True)
 
     assert isinstance(

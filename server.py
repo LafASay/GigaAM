@@ -81,7 +81,7 @@ async def lifespan(_: FastAPI) -> Iterator[None]:
     if not isinstance(model, gigaam.GigaAMASR):
         raise RuntimeError(
             f"Model '{model_name}' does not support transcription; "
-            "set GIGAAM_MODEL to a ctc/rnnt revision"
+            "set GIGAAM_MODEL to v3_e2e_rnnt"
         )
     _ASR_MODEL = model
     logger.info("Model %s ready on %s", model.cfg.model_name, model._device)

@@ -35,24 +35,6 @@ def _build_inputs(session: rt.InferenceSession, values: List[np.ndarray]) -> dic
     return {node.name: data for node, data in zip(session.get_inputs(), values)}
 
 
-def _decode_ctc_batch(
-    labels: np.ndarray,
-    lengths: np.ndarray,
-    tokenizer: Tokenizer,
-) -> List[str]:
-    blank_id = len(tokenizer)
-    b, t = labels.shape
-    lengths = np.clip(np.asarray(lengths, dtype=np.int64).reshape(-1), 0, t)
-
-    skip_mask = labels != blank_id
-    skip_mask[:, 1:] &= labels[:, 1:] != labels[:, :-1]
-
-    time = np.arange(t, dtype=np.int64)[None, :]
-    skip_mask &= time < lengths[:, None]
-
-    return [tokenizer.decode(labels[i][skip_mask[i]].tolist()) for i in range(b)]
-
-
 def _cat_states(
     states: List[Tuple[np.ndarray, np.ndarray]],
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -163,21 +145,21 @@ def _decode_rnnt_batch(
 def infer_onnx(
     data: Union[str, Sequence[Union[str, np.ndarray, torch.Tensor]]],
     model_cfg: omegaconf.DictConfig,
-    sessions: List[Optional[rt.InferenceSession]],
+    sessions: List[rt.InferenceSession],
     preprocessor: Optional[FeatureExtractor] = None,
     tokenizer: Optional[Tokenizer] = None,
     batch_size: int = 16,
     num_workers: int = 0,
     progress: bool = True,
-) -> Union[List[str], np.ndarray, List[np.ndarray]]:
+) -> List[str]:
     """
-    Выполняет инференс модели GigaAM с помощью ONNX Runtime.
+    Выполняет инференс модели GigaAM v3_e2e_rnnt с помощью ONNX Runtime.
 
     Параметры
     ----------
     data : Путь к файлу манифеста или итерируемый набор путей к аудио / волновых форм.
     model_cfg : Конфигурация модели.
-    sessions : Список инференс-сессий ONNX Runtime.
+    sessions : Список инференс-сессий ONNX Runtime (encoder, decoder, joint).
     preprocessor : Optional[FeatureExtractor].
     tokenizer : Optional[Tokenizer].
     batch_size : Размер батча при инференсе.
@@ -186,14 +168,12 @@ def infer_onnx(
 
     Возвращает
     -------
-    Union[List[str], np.ndarray, List[np.ndarray]]
-        Список текстов (ASR) / массивов (SSL) для каждого сэмпла.
+    List[str]
+        Список текстов для каждого сэмпла.
     """
-    model_name = model_cfg.model_name
-
     if preprocessor is None:
         preprocessor = hydra.utils.instantiate(model_cfg.preprocessor)
-    if tokenizer is None and ("ctc" in model_name or "rnnt" in model_name):
+    if tokenizer is None:
         tokenizer = hydra.utils.instantiate(model_cfg.decoding).tokenizer
 
     if isinstance(data, str) and Path(data).suffix != ".tsv":
@@ -208,33 +188,12 @@ def infer_onnx(
         collate_fn=AudioDataset.collate,
         num_workers=num_workers,
     )
-    loader_iter = (
-        tqdm(loader, desc="Inference") if progress and "ssl" in model_name else loader
-    )
+    asr_iter = tqdm(loader, desc="ASR inference") if progress else loader
 
     enc_sess = sessions[0]
     dtype = _session_float_dtype(enc_sess)
 
-    if "ssl" in model_name:
-        outputs = []
-        for wavs, wav_lens in loader_iter:
-            input_signal, input_lengths = preprocessor(wavs.float(), wav_lens)
-            batch_outputs = enc_sess.run(
-                [node.name for node in enc_sess.get_outputs()],
-                _build_inputs(
-                    enc_sess,
-                    [
-                        input_signal.contiguous().numpy().astype(dtype),
-                        input_lengths.numpy().astype(np.int64),
-                    ],
-                ),
-            )
-            outputs.extend(list(batch_outputs[0]))
-
-        return outputs
-
     texts = []
-    asr_iter = tqdm(loader, desc="ASR inference") if progress else loader
     for wavs, wav_lens in asr_iter:
         input_signal, input_lengths = preprocessor(wavs.float(), wav_lens)
         batch_outputs = enc_sess.run(
@@ -254,16 +213,11 @@ def infer_onnx(
         ), "encoder must return enc_lengths for batched decoding"
         batch_lengths = np.asarray(batch_outputs[1], dtype=np.int64).reshape(-1)
 
-        if "ctc" in model_name:
-            texts.extend(
-                _decode_ctc_batch(batch_features.argmax(-1), batch_lengths, tokenizer)
+        texts.extend(
+            _decode_rnnt_batch(
+                batch_features, batch_lengths, model_cfg, sessions, tokenizer
             )
-        else:
-            texts.extend(
-                _decode_rnnt_batch(
-                    batch_features, batch_lengths, model_cfg, sessions, tokenizer
-                )
-            )
+        )
 
     return texts
 
@@ -283,12 +237,9 @@ def load_onnx(
     onnx_dir: str,
     model_version: str,
     provider: Optional[str] = None,
-) -> Tuple[
-    List[rt.InferenceSession], Union[omegaconf.DictConfig, omegaconf.ListConfig]
-]:
+) -> Tuple[List[rt.InferenceSession], omegaconf.DictConfig]:
     """
-    Загружает модель GigaAM в ONNX Runtime по заданной версии модели.
-    Поддерживает любые семейства моделей (ASR, SSL).
+    Загружает модель GigaAM v3_e2e_rnnt в ONNX Runtime (encoder, decoder, joint).
     """
     providers = _providers_list(provider)
 
@@ -299,22 +250,16 @@ def load_onnx(
     opts.log_severity_level = 3
 
     model_cfg = omegaconf.OmegaConf.load(f"{onnx_dir}/{model_version}.yaml")
+    assert isinstance(model_cfg, omegaconf.DictConfig)
 
     def _sess(path: str) -> rt.InferenceSession:
         return rt.InferenceSession(path, providers=providers, sess_options=opts)
 
-    if "rnnt" not in model_version and "ssl" not in model_version:
-        model_path = f"{onnx_dir}/{model_version}.onnx"
-        sessions = [_sess(model_path)]
-    elif "ssl" in model_version:
-        pth = f"{onnx_dir}/{model_version}"
-        sessions = [_sess(f"{pth}_encoder.onnx")]
-    else:
-        pth = f"{onnx_dir}/{model_version}"
-        sessions = [
-            _sess(f"{pth}_encoder.onnx"),
-            _sess(f"{pth}_decoder.onnx"),
-            _sess(f"{pth}_joint.onnx"),
-        ]
+    pth = f"{onnx_dir}/{model_version}"
+    sessions = [
+        _sess(f"{pth}_encoder.onnx"),
+        _sess(f"{pth}_decoder.onnx"),
+        _sess(f"{pth}_joint.onnx"),
+    ]
 
     return sessions, model_cfg

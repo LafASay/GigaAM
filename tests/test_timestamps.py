@@ -39,41 +39,10 @@ _predictions = {
             {"word": "зелёный.", "start": 10.48, "end": 11.08},
         ],
     },
-    "v3_ctc": {
-        "text": "ничьих не требуя похвал счастлив уж я надеждой сладкой что дева с трепетом любви посмотрит может быть украдкой на песни грешные мои у лукоморья дуб зеленый",  # noqa: E501
-        "words": [
-            {"word": "ничьих", "start": 0.08, "end": 0.44},
-            {"word": "не", "start": 0.52, "end": 0.64},
-            {"word": "требуя", "start": 0.72, "end": 1.0},
-            {"word": "похвал", "start": 1.16, "end": 1.52},
-            {"word": "счастлив", "start": 1.76, "end": 2.2},
-            {"word": "уж", "start": 2.28, "end": 2.4},
-            {"word": "я", "start": 2.48, "end": 2.52},
-            {"word": "надеждой", "start": 2.72, "end": 3.12},
-            {"word": "сладкой", "start": 3.2, "end": 3.6},
-            {"word": "что", "start": 3.68, "end": 3.8},
-            {"word": "дева", "start": 3.92, "end": 4.12},
-            {"word": "с", "start": 4.2, "end": 4.24},
-            {"word": "трепетом", "start": 4.32, "end": 4.72},
-            {"word": "любви", "start": 4.84, "end": 5.12},
-            {"word": "посмотрит", "start": 5.4, "end": 5.92},
-            {"word": "может", "start": 6.04, "end": 6.24},
-            {"word": "быть", "start": 6.32, "end": 6.48},
-            {"word": "украдкой", "start": 6.6, "end": 7.08},
-            {"word": "на", "start": 7.16, "end": 7.24},
-            {"word": "песни", "start": 7.36, "end": 7.64},
-            {"word": "грешные", "start": 7.72, "end": 8.12},
-            {"word": "мои", "start": 8.28, "end": 8.48},
-            {"word": "у", "start": 9.28, "end": 9.32},
-            {"word": "лукоморья", "start": 9.44, "end": 10.04},
-            {"word": "дуб", "start": 10.16, "end": 10.36},
-            {"word": "зеленый", "start": 10.48, "end": 10.92},
-        ],
-    },
 }
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_word_timestamps_predictions(revision, test_audio):
     """Проверяет, что таймстампы слов совпадают с ожидаемыми значениями."""
     model = gigaam.load_model(revision, device="cpu")
@@ -91,7 +60,7 @@ def test_word_timestamps_predictions(revision, test_audio):
     logger.info(f"{revision}: Word timestamps predictions matched")
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_transcribe_word_timestamps_structure(revision, test_audio):
     """Проверяет, что word_timestamps=True возвращает корректную структуру."""
     from gigaam.types import TranscriptionResult, Word
@@ -110,7 +79,7 @@ def test_transcribe_word_timestamps_structure(revision, test_audio):
     logger.info(f"{revision}: text={result.text[:50]}...")
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_transcribe_word_timestamps_values(revision, test_audio):
     """Проверяет, что таймстампы слов валидны и упорядочены."""
     model = gigaam.load_model(revision)
@@ -132,7 +101,7 @@ def test_transcribe_word_timestamps_values(revision, test_audio):
     logger.info(f"{revision}: {len(words)} words, last end={prev_end:.2f}s")
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_transcribe_default_returns_string(revision, test_audio):
     """Проверяет, что поведение по умолчанию (word_timestamps=False) возвращает TranscriptionResult с __str__."""
     from gigaam.types import TranscriptionResult
@@ -146,7 +115,7 @@ def test_transcribe_default_returns_string(revision, test_audio):
     assert result.words is None, "Should not have words when word_timestamps=False"
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_transcribe_longform_word_timestamps(revision, long_audio):
     """Проверяет longform-транскрипцию с word_timestamps=True."""
     from gigaam.types import LongformTranscriptionResult, Segment, Word
@@ -180,7 +149,7 @@ def test_transcribe_longform_word_timestamps(revision, long_audio):
     )
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_transcribe_longform_default(revision, long_audio):
     """Проверяет, что longform по умолчанию возвращает сегменты с транскрипцией."""
     from gigaam.types import LongformTranscriptionResult, Segment

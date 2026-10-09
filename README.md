@@ -13,7 +13,7 @@
 
 ## Последние обновления
 * **2026/10** — [диаризация спикеров](#диаризация-спикеров) на модели [Nemotron-3-Diarization](https://huggingface.co/nvidia/Nemotron-3-Diarization): сегментация длинных аудио и определение "кто говорил когда" (до 8 спикеров) без Hugging Face токена
-* **2026/04** — [дообучение моделей](#дообучение-моделей) (CTC / RNNT), таймстемпы на уровне слов, [Triton Inference Server](#triton-inference-server-и-tensorrt)
+* **2026/04** — [дообучение модели](#дообучение-моделей), таймстемпы на уровне слов, [Triton Inference Server](#triton-inference-server-и-tensorrt)
 * **2025/11** — GigaAM-v3: снижение WER на **30%** на новых доменах данных; GigaAM-v3-e2e: end-to-end распознавание речи (**70:30** в side-by-side сравнении против Whisper-large-v3)
 * **2025/06** — Наша [научная статья о GigaAM](https://arxiv.org/abs/2506.01192) принята на InterSpeech 2025!
 * **2024/05** — [Поддержка распознавания речи на длинных аудиозаписях](#основные-функции)
@@ -45,17 +45,17 @@ pytest -v tests/test_loading.py -m partial  # или `-m full` для тести
 
 ## Обзор GigaAM
 
-GigaAM - акустическая модель на базе архитектуры [Conformer](https://arxiv.org/pdf/2005.08100.pdf) (~220M параметров), предобученная на русскоязычных речевых данных. Она служит основой для всего семейства GigaAM и обеспечивает высокое качество при дообучении на задачи распознавания речи. Для задач автоматического распознавания речи (ASR) мы дообучили энкодер GigaAM с декодерами на основе [CTC](https://www.cs.toronto.edu/~graves/icml_2006.pdf) и [RNNT](https://arxiv.org/abs/1211.3711). Доступна одна линейка моделей:
+GigaAM - акустическая модель на базе архитектуры [Conformer](https://arxiv.org/pdf/2005.08100.pdf) (~220M параметров), предобученная на русскоязычных речевых данных. Она служит основой для всего семейства GigaAM и обеспечивает высокое качество при дообучении на задачи распознавания речи. Для задач автоматического распознавания речи (ASR) доступна модель с декодером [RNNT](https://arxiv.org/abs/1211.3711):
 
-| | Метод предобучения | Объём предобучения (часы) | Объём данных ASR (часы) | Доступные версии |
+| | Метод предобучения | Объём предобучения (часы) | Объём данных ASR (часы) | Доступная версия |
 | :--- | :--- | :--- | :--- | :---: |
-| **v3** | HuBERT–CTC | 700 000 | 4 000 | `v3_ssl`, `v3_ctc`, `v3_rnnt`, `v3_e2e_ctc`, `v3_e2e_rnnt` |
+| **v3** | HuBERT–CTC | 700 000 | 4 000 | `v3_e2e_rnnt` |
 
-Версии `v3_e2e_ctc` и `v3_e2e_rnnt` поддерживают пунктуацию и нормализацию текста.
+Версия `v3_e2e_rnnt` поддерживает пунктуацию и нормализацию текста.
 
 ## Качество моделей
 
-В обучение `GigaAM-v3` были включены новые внутренние наборы данных: колл-центр, музыка, речь с атипичными характеристиками и голосовые сообщения. В результате модели в среднем демонстрируют улучшение на **30%** (по метрике WER) на новых доменах данных. В сравнении end-to-end моделей (`e2e_ctc` и `e2e_rnnt`) с Whisper (оценка проводилась с использованием внешней LLM в формате side-by-side) модели GigaAM выигрывают в соотношении **70:30**.
+В обучение `GigaAM-v3` были включены новые внутренние наборы данных: колл-центр, музыка, речь с атипичными характеристиками и голосовые сообщения. В результате модели в среднем демонстрируют улучшение на **30%** (по метрике WER) на новых доменах данных. В сравнении end-to-end модели (`e2e_rnnt`) с Whisper (оценка проводилась с использованием внешней LLM в формате side-by-side) модель GigaAM выигрывает в соотношении **70:30**.
 
 ---
 
@@ -82,14 +82,8 @@ import gigaam
 # Путь к вашему аудиофайлу
 audio_path = "audio.wav"
 
-# Аудио-эмбеддинги
-model_name = "v3_ssl"       # Единственный вариант ssl-энкодера
-model = gigaam.load_model(model_name)
-embedding, _ = model.embed_audio(audio_path)
-print(embedding)
-
 # Распознавание речи
-model_name = "v3_e2e_rnnt"  # Варианты: любые версии с суффиксами `_ctc` или `_rnnt`
+model_name = "v3_e2e_rnnt"
 model = gigaam.load_model(model_name)
 transcription = model.transcribe(audio_path)
 print(transcription)
@@ -202,7 +196,7 @@ model = AutoModel.from_pretrained("ai-sage/GigaAM-v3", revision="e2e_rnnt", trus
 1. Экспорт модели в ONNX с помощью метода `model.to_onnx`:
    ```python
    onnx_dir = "onnx"
-   model_version = "v3_ctc"  # Варианты: любая версия модели
+   model_version = "v3_e2e_rnnt"
 
    model = gigaam.load_model(model_version)
    model.to_onnx(dir_path=onnx_dir, dtype=torch.float32)  # или fp16 (рекомендовано для GPU)
@@ -214,7 +208,7 @@ model = AutoModel.from_pretrained("ai-sage/GigaAM-v3", revision="e2e_rnnt", trus
 
    sessions, model_cfg = load_onnx(onnx_dir, model_version)
    result = infer_onnx([audio_path], model_cfg, sessions)
-    print(result[0])  # str для ctc / rnnt версий, np.ndarray для ssl
+    print(result[0])  # str
 
    # или для целого датасета
    texts = infer_onnx("/path/to/eval/manifest.tsv", model_cfg, sessions)

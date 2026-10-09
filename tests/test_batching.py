@@ -83,7 +83,7 @@ def compare_outputs(output1, output2, atol=0.03):
     return close, {"max_absolute_difference": abs_diff}
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 @pytest.mark.parametrize("batch_size", [1, 2, 4])
 def test_model_batching(revision, batch_size):
     """Проверяет корректность батчинга для разных моделей и размеров батча"""
@@ -122,7 +122,7 @@ def test_model_batching(revision, batch_size):
     logger.info(f"Batching test passed: {revision} batch_size={batch_size}")
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_batching_edge_cases(revision):
     """Проверяет батчинг на крайних случаях"""
     model = gigaam.load_model(revision)
@@ -143,7 +143,7 @@ def test_batching_edge_cases(revision):
 @pytest.mark.parametrize("max_duration", [0.5, 1.0])
 def test_different_audio_lengths(max_duration):
     """Проверяет батчинг с разной длительностью аудио"""
-    model = gigaam.load_model("v3_e2e_ctc")
+    model = gigaam.load_model("v3_e2e_rnnt")
     model.eval()
     device = next(model.parameters()).device
 

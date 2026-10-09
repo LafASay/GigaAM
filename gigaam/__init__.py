@@ -47,11 +47,7 @@ def _hf_cache_dir() -> str:
 
 
 _MODEL_HASHES = {
-    "v3_ctc": "73413e7be9c6a5935827bfab5c0dd678",
-    "v3_rnnt": "0fd2c9a1ff66abd8d32a3a07f7592815",
-    "v3_e2e_ctc": "367074d6498f426d960b25f49531cf68",
     "v3_e2e_rnnt": "2730de7545ac43ad256485a462b0a27a",
-    "v3_ssl": "70cbf5ed7303a0ed242ddb257e9dc6a6",
 }
 
 
@@ -103,25 +99,19 @@ def _download_file(
 
 def _download_model(model_name: str, download_root: str) -> Tuple[str, str]:
     """Скачивает веса модели, если они ещё не закэшированы."""
-    short_names = ["ctc", "rnnt", "e2e_ctc", "e2e_rnnt", "ssl"]
-    possible_names = short_names + list(_MODEL_HASHES.keys())
-    if model_name not in possible_names:
+    available_models = list(_MODEL_HASHES.keys())
+    if model_name not in available_models:
         raise ValueError(
-            f"Model '{model_name}' not found. Available model names: {possible_names}"
+            f"Model '{model_name}' not found. Available model names: {available_models}"
         )
 
-    if model_name in short_names:
-        model_name = f"v3_{model_name}"
     model_url = f"{_URL_DIR}/{model_name}.ckpt"
     model_path = os.path.join(download_root, model_name + ".ckpt")
     return model_name, _download_file(model_url, model_path)
 
 
 def _download_tokenizer(model_name: str, download_root: str) -> Optional[str]:
-    """При необходимости скачивает токенизатор и возвращает путь к нему."""
-    if "e2e" not in model_name:
-        return None  # No tokenizer required for this model
-
+    """Скачивает токенизатор и возвращает путь к нему."""
     tokenizer_url = f"{_URL_DIR}/{model_name}_tokenizer.model"
     tokenizer_path = os.path.join(download_root, model_name + "_tokenizer.model")
     return _download_file(tokenizer_url, tokenizer_path)
@@ -142,10 +132,10 @@ def _apply_flash_policy(cfg, use_flash: Optional[bool], device_obj: torch.device
 
 
 def _finalize_model(
-    model: Union["GigaAM", "GigaAMASR"],
+    model: GigaAMASR,
     fp16_encoder: bool,
     device_obj: torch.device,
-) -> Union["GigaAM", "GigaAMASR"]:
+) -> GigaAMASR:
     """Общий финал загрузки: режим eval, опциональный fp16-энкодер, целевое устройство."""
     model = model.eval()
     if fp16_encoder and device_obj.type != "cpu":
@@ -174,14 +164,14 @@ def load_model(
     use_flash: Optional[bool] = False,
     device: Optional[Union[str, torch.device]] = None,
     download_root: Optional[str] = None,
-) -> Union[GigaAM, GigaAMASR]:
+) -> GigaAMASR:
     """
-    Загружает модель GigaAM по имени или локальный ``.ckpt`` после файнтюна.
+    Загружает модель GigaAM ``v3_e2e_rnnt`` или локальный ``.ckpt`` после файнтюна.
 
     Параметры
     ----------
     model_name : str
-        Имя модели или путь к файлу ``.ckpt``.
+        Имя модели (``v3_e2e_rnnt``) или путь к файлу ``.ckpt``.
     fp16_encoder:
         Нужно ли преобразовать веса энкодера к точности FP16.
     use_flash : Optional[bool]
@@ -245,10 +235,7 @@ def load_model(
     if tokenizer_path is not None:
         checkpoint["cfg"].decoding.model_path = tokenizer_path
 
-    if "ssl" in model_name:
-        model = GigaAM(checkpoint["cfg"])
-    else:
-        model = GigaAMASR(checkpoint["cfg"])
+    model = GigaAMASR(checkpoint["cfg"])
 
     model.load_state_dict(checkpoint["state_dict"])
     checkpoint["cfg"].model_name = model_name

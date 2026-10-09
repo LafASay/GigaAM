@@ -21,7 +21,7 @@ LONGFORM_THRESHOLD = 25 * SAMPLE_RATE
 
 class GigaAM(nn.Module):
     """
-    Giga Acoustic Model: самостоятельная (self-supervised) модель для речевых задач
+    Giga Acoustic Model: базовый класс (препроцессор + энкодер).
     """
 
     def __init__(self, cfg: omegaconf.DictConfig):
@@ -159,58 +159,25 @@ class GigaAMASR(GigaAM):
         text, words = self._decode(encoded, encoded_len, length, word_timestamps)[0]
         return TranscriptionResult(text=text, words=words)
 
-    def forward_for_export(
-        self, features: Tensor, feature_lengths: Tensor
-    ) -> Tuple[Tensor, Tensor]:
-        """
-        Прямой проход энкодер-декодер для сохранения модели целиком в формате onnx.
-        """
-        encoded, encoded_len = self.encoder(features, feature_lengths)
-        return self.head(encoded), encoded_len
-
     def _to_onnx(self, dir_path: str = ".", dtype: torch.dtype = torch.float32) -> None:
         """
-        Экспортирует ONNX ASR-модель.
-        `ctc`:  экспортируется целиком в формате энкодер-декодер.
-        `rnnt`: экспортируется по частям: энкодер/декодер/joint.
+        Экспортирует ONNX ASR-модель по частям: энкодер/декодер/joint.
         """
-        if "ctc" in self.cfg.model_name:
-            saved_forward = self.forward
-            self.forward = self.forward_for_export  # type: ignore[assignment, method-assign]
-            try:
-                onnx_converter(
-                    model_name=self.cfg.model_name,
-                    out_dir=dir_path,
-                    module=self,
-                    inputs=self.encoder.input_example(),
-                    input_names=["features", "feature_lengths"],
-                    output_names=["log_probs", "encoded_lengths"],
-                    dynamic_axes={
-                        "features": {0: "batch_size", 2: "seq_len"},
-                        "feature_lengths": {0: "batch_size"},
-                        "log_probs": {0: "batch_size", 1: "seq_len"},
-                        "encoded_lengths": {0: "batch_size"},
-                    },
-                    export_dtype=dtype,
-                )
-            finally:
-                self.forward = saved_forward  # type: ignore[assignment, method-assign]
-        else:
-            super()._to_onnx(dir_path, dtype=dtype)
-            onnx_converter(
-                model_name=f"{self.cfg.model_name}_decoder",
-                out_dir=dir_path,
-                module=self.head.decoder,
-                dynamic_axes=self.head.decoder.dynamic_axes(),
-                export_dtype=dtype,
-            )
-            onnx_converter(
-                model_name=f"{self.cfg.model_name}_joint",
-                out_dir=dir_path,
-                module=self.head.joint,
-                dynamic_axes=self.head.joint.dynamic_axes(),
-                export_dtype=dtype,
-            )
+        super()._to_onnx(dir_path, dtype=dtype)
+        onnx_converter(
+            model_name=f"{self.cfg.model_name}_decoder",
+            out_dir=dir_path,
+            module=self.head.decoder,
+            dynamic_axes=self.head.decoder.dynamic_axes(),
+            export_dtype=dtype,
+        )
+        onnx_converter(
+            model_name=f"{self.cfg.model_name}_joint",
+            out_dir=dir_path,
+            module=self.head.joint,
+            dynamic_axes=self.head.joint.dynamic_axes(),
+            export_dtype=dtype,
+        )
 
     @torch.inference_mode()
     def transcribe_longform(

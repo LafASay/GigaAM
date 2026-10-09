@@ -32,24 +32,6 @@ _predictions = {
             "boundaries": (56.1, 70.93),
         },
     ],
-    "v3_ctc": [
-        {
-            "transcription": "вечерня отошла давно но в кельях тихо и темно уже и сам игумен строгий свои молитвы прекратил и кости ветхие склонил перекрестясь на одр убогий кругом и сон и тишина но церкви дверь отворена трепещет луч лампады",  # noqa: E501
-            "boundaries": (0.0, 19.0),
-        },
-        {
-            "transcription": "и тускло озаряет он и темную живопись икон и позлащенные оклады и раздается в тишине то тяжкий вздох то шепот важный и мрачно дремлет в вашине старинный свод глухой и влажный стоят за клиросом чернец и грешник",  # noqa: E501
-            "boundaries": (19.49, 37.54),
-        },
-        {
-            "transcription": "неподвижны оба и шепот их как глаз из гроба и грешник бледен как мертвец монах несчастный полно перестань ужасна исповедь злодея заплачена тобою дань тому кто в злобе пламенея",  # noqa: E501
-            "boundaries": (37.89, 55.86),
-        },
-        {
-            "transcription": "лукаво грешника блюдет и к вечной гибели ведет смирись опомнись время время раскаянье покров я разрешу тебя грехов сложи мучительное бремя",  # noqa: E501
-            "boundaries": (56.1, 70.93),
-        },
-    ],
 }
 
 
@@ -181,9 +163,9 @@ def test_utterance_pack_no_degenerate_chunks():
     assert (10.0, 20.0) in boundaries
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_transcribe_longform_utterance(revision, long_audio):
-    """e2e: utterance + word_timestamps не падает на вырожденных чанках."""
+    """utterance + word_timestamps не падает на вырожденных чанках."""
     from gigaam.types import LongformTranscriptionResult
 
     model = gigaam.load_model(revision)
@@ -264,7 +246,7 @@ def test_segmentation_functionality(duration):
                 os.remove(f.name)
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc", "v3_e2e_rnnt"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_transcribe_longform(revision, long_audio):
     """Проверяет longform-транскрипцию для разных моделей"""
     from gigaam.types import LongformTranscriptionResult, Segment
@@ -293,7 +275,7 @@ def test_transcribe_longform(revision, long_audio):
         ), f"Different transcription: {segment.text} and {ref_segment['transcription']}"
 
 
-@pytest.mark.parametrize("revision", ["v3_ctc"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_longform_consistency(revision):
     """Проверяет, что повторные запуски дают согласованные результаты"""
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:

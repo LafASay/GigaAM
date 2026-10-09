@@ -1,6 +1,6 @@
 # AGENTS.md — GigaAM
 
-Семейство открытых акустических моделей (Conformer, ~220M параметров) для русского ASR и SSL-эмбеддингов. Доступна одна линейка ревизий v3 (`v3_ssl`, `v3_ctc`, `v3_rnnt`, `v3_e2e_ctc`, `v3_e2e_rnnt`). Один Python-пакет `gigaam`, без монорепозиторных границ.
+Открытая акустическая модель (Conformer, ~220M параметров) для русского ASR. Доступна модель `v3_e2e_rnnt`; для нарезки длинных аудио и диаризации используется модель [Nemotron-3-Diarization](https://huggingface.co/nvidia/Nemotron-3-Diarization). Один Python-пакет `gigaam`, без монорепозиторных границ.
 
 ## Установка
 
@@ -26,7 +26,7 @@ mypy gigaam/ --ignore-missing-imports --no-strict-optional   # только giga
 
 - Быстро/офлайн: `pytest -v tests/test_normalize.py` (чистая нормализация текста; нужен extra `[tests]`).
 - Дефолт CI: `pytest -v tests/test_loading.py -m partial` — облегчённое подмножество.
-- `-m full` скачивает **каждый** чекпойнт (очень медленно, много места на диске; после использования удаляет каждый ckpt).
+- `-m full` повторно скачивает чекпойнт `v3_e2e_rnnt` (медленно; после использования удаляет каждый ckpt).
 - Общие аудио-фикстуры (`test_audio`, `long_audio`) живут в `tests/conftest.py`.
 - CI запускает каждый файл отдельно: `test_reading`, `test_batching`, `test_longform`, `test_diarization`, `test_onnx`, `test_timestamps`.
 - Особенности ONNX/GPU проверяются в `test_onnx.py`; CI работает на CPU, поэтому никогда не предполагайте CUDA в тестах.
@@ -34,8 +34,8 @@ mypy gigaam/ --ignore-missing-imports --no-strict-optional   # только giga
 
 ## Архитектура / ловушки
 
-- Точка входа: `gigaam.load_model(name)` (`gigaam/__init__.py`) — принимает ревизию модели (`v3_*`, см. `_MODEL_HASHES`) или короткий алиас (`ctc`, `rnnt`, `e2e_ctc`, `e2e_rnnt`, `ssl`) **или локальный путь `.ckpt`** после файнтюна. Поддержка v1/v2/emo/multilingual удалена.
-- Иерархия классов: `GigaAM` (только SSL-энкодер) → `GigaAMASR` (+ голова/декодирование). Веса проверяются контрольной суммой md5 — никогда не обходите валидацию `_MODEL_HASHES`.
+- Точка входа: `gigaam.load_model(name)` (`gigaam/__init__.py`) — принимает имя `v3_e2e_rnnt` (см. `_MODEL_HASHES`; алиасы удалены) **или локальный путь `.ckpt`** после файнтюна. Поддержка v1/v2/emo/multilingual и прочих ревизий (ssl/ctc/rnnt/e2e_ctc) удалена.
+- Иерархия классов: `GigaAM` (базовый класс: препроцессор + энкодер) → `GigaAMASR` (+ RNNT-голова/декодирование). Веса проверяются контрольной суммой md5 — никогда не обходите валидацию `_MODEL_HASHES`.
 - `model.transcribe()` бросает исключение для аудио > 25 с (`LONGFORM_THRESHOLD`); длинное аудио должно идти через `transcribe_longform()` (нарезка и диаризация через Nemotron-3-Diarization, `gigaam/segmentation.py` + `gigaam/diarization.py`).
 - Официально код рассчитан на CPU/CUDA, но MPS тоже поддержан: `_normalize_device` (`gigaam/__init__.py`) автовыбирает `cuda → mps → cpu`, а `test_batching` использует `device_type=model._device.type`. На Apple Silicon отмечено: fp16-энкодер, транскрипция/word_timestamps/longform совпадают с эталоном.
 - `to_onnx` по умолчанию экспортирует в fp32; для GPU-инференса передавайте `dtype=torch.float16`. Экспорт приводит модуль к нужному типу, а затем возвращает `module.float()`.

@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@pytest.mark.parametrize("revision", ["v3_ssl"])
+@pytest.mark.parametrize("revision", ["v3_e2e_rnnt"])
 def test_torchaudio_loading(revision, test_audio):
     """Волна, загруженная через torchaudio, должна совпадать с embed_audio(path) (ffmpeg load_audio)."""
     model = gigaam.load_model(revision)

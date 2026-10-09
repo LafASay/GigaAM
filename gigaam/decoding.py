@@ -4,7 +4,7 @@ import torch
 from sentencepiece import SentencePieceProcessor
 from torch import Tensor
 
-from .decoder import CTCHead, RNNTHead
+from .decoder import RNNTHead
 
 
 class Tokenizer:
@@ -42,58 +42,6 @@ class Tokenizer:
         if self.charwise:
             return self.vocab[token_id]
         return self.model.IdToPiece(token_id)
-
-
-class CTCGreedyDecoding:
-    """
-    Класс для жадного декодирования выходов CTC.
-    """
-
-    def __init__(self, vocabulary: List[str], model_path: Optional[str] = None):
-        self.tokenizer = Tokenizer(vocabulary, model_path)
-        self.blank_id = len(self.tokenizer)
-
-    @torch.inference_mode()
-    def decode(
-        self,
-        head: "CTCHead",
-        encoded: Tensor,
-        lengths: Tensor,
-    ) -> List[Tuple[str, List[int], List[int]]]:
-        """
-        Жадное CTC-декодирование: возвращает (текст, id_токенов, кадры_токенов) для каждого сэмпла.
-        Кадры токенов — временные индексы (0..T-1), в которых выдан токен.
-        """
-        log_probs = head(encoder_output=encoded)
-        C = log_probs.shape[-1]
-        assert (
-            C == len(self.tokenizer) + 1
-        ), f"Num classes {C} != len(vocab)+1 {len(self.tokenizer) + 1}"
-        labels = log_probs.argmax(dim=-1)
-
-        B, T = labels.shape
-        device = labels.device
-        lengths = lengths.to(device=device).clamp(min=0, max=T)
-
-        skip_mask = labels != self.blank_id
-        skip_mask[:, 1:] &= labels[:, 1:] != labels[:, :-1]
-
-        time = torch.arange(T, device=device)[None, :]
-        skip_mask &= time < lengths[:, None]
-
-        idx = skip_mask.nonzero(as_tuple=False)
-        batch_idx = idx[:, 0]
-        token_frames_flat = idx[:, 1]
-        token_ids_flat = labels[skip_mask]
-
-        counts = torch.bincount(batch_idx, minlength=B).cpu().tolist()
-        ids_splits = token_ids_flat.cpu().split(counts)
-        fr_splits = token_frames_flat.cpu().split(counts)
-
-        return [
-            (self.tokenizer.decode(ids.tolist()), ids.tolist(), fr.tolist())
-            for ids, fr in zip(ids_splits, fr_splits)
-        ]
 
 
 class RNNTGreedyDecoding:
