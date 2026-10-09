@@ -153,6 +153,27 @@ class Diarizer:
         return regions
 
     @staticmethod
+    def speaker_turns(
+        probs: np.ndarray, frame_shift: float
+    ) -> List[Tuple[float, float]]:
+        """
+        Интервалы постоянного доминирующего спикера (замена VAD при
+        сегментации longform-аудио со стратегией "speaker"): разрез
+        происходит в моментах смены активного спикера, тишина
+        интервалы не покрывает.
+        """
+        active = np.any(probs >= _SPEECH_PROB_THRESHOLD, axis=1)
+        dominant = probs.argmax(axis=1)
+        turn_key = np.where(active, dominant, -1)
+        change = np.nonzero(turn_key[1:] != turn_key[:-1])[0] + 1
+        bounds = np.concatenate(([0], change, [probs.shape[0]]))
+        return [
+            (float(s) * frame_shift, float(e) * frame_shift)
+            for s, e in zip(bounds[:-1], bounds[1:])
+            if turn_key[s] != -1
+        ]
+
+    @staticmethod
     def dominant_speaker(
         probs: np.ndarray, start: float, end: float, frame_shift: float
     ) -> Optional[int]:

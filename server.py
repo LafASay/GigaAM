@@ -15,8 +15,7 @@ GET /health — состояние сервиса
 --------------------
 GIGAAM_MODEL  — ревизия модели ASR (по умолчанию v3_e2e_rnnt)
 GIGAAM_DEVICE — "cuda", "mps" или "cpu" (по умолчанию авто-выбор cuda -> mps -> cpu)
-GIGAAM_FP16   — fp16-энкодер на GPU/MPS (по умолчанию включён)
-"""
+GIGAAM_FP16   — fp16-энкодер на GPU/MPS (по умолчанию включён)"""
 
 import logging
 import os
@@ -152,7 +151,7 @@ def _render_markdown(utterances: List[Utterance], style: str) -> str:
 
 
 def _transcribe_uploaded(
-    model: gigaam.GigaAMASR, file: UploadFile
+    model: gigaam.GigaAMASR, file: UploadFile, strategy: str
 ) -> LongformTranscriptionResult:
     """Сохраняет загруженный файл во временный и транскрибирует его со спикерами."""
     suffix = os.path.splitext(file.filename or "")[1] or ".wav"
@@ -160,7 +159,9 @@ def _transcribe_uploaded(
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
     try:
-        return model.transcribe_longform(tmp_path, word_timestamps=True, diarize=True)
+        return model.transcribe_longform(
+            tmp_path, word_timestamps=True, diarize=True, strategy=strategy
+        )
     finally:
         os.unlink(tmp_path)
 
@@ -176,6 +177,14 @@ def asr(
     style: Literal["table", "dialog"] = Query(
         "table", description="Стиль markdown: таблица или диалоговые блоки"
     ),
+    chunking: Literal["vad", "speaker", "utterance"] = Query(
+        "vad",
+        description=(
+            "Стратегия нарезки длинного аудио на ASR-чанки: vad — речевые "
+            "области (по умолчанию), speaker — разрез по смене доминирующего "
+            "спикера со склейкой, utterance — одна реплика = один чанк"
+        ),
+    ),
 ):
     """
     Транскрибирует аудио и определяет спикеров (модель Nemotron-3-Diarization).
@@ -183,6 +192,8 @@ def asr(
     Подряд идущие слова одного спикера склеиваются в реплики. По умолчанию
     возвращается JSON; `?format=markdown` отдаёт таблицу или диалог
     (`&style=dialog`) со временем, спикером и текстом каждой реплики.
+    Стратегия нарезки длинного аудио задаётся `?chunking=...`
+    (vad / speaker / utterance).
     Длительность аудио не ограничена (используется transcribe_longform).
     """
     model = _require_model()
@@ -192,7 +203,7 @@ def asr(
     file.file.seek(0)
 
     try:
-        result = _transcribe_uploaded(model, file)
+        result = _transcribe_uploaded(model, file, chunking)
     except HTTPException:
         raise
     except RuntimeError as exc:

@@ -122,6 +122,11 @@ class GigaAMASR(GigaAM):
 
         out: List[Tuple[str, Optional[List[Word]]]] = []
         for i, (text, token_ids, token_frames) in enumerate(decoded):
+            if int(encoded_len[i].item()) == 0:
+                # вырожденный чанк (например, пустой срез аудио):
+                # энкодер не дал ни одного кадра — таймстампы невозможны
+                out.append(("", None))
+                continue
             frame_shift = compute_frame_shift(
                 int(wav_lens[i].item()), int(encoded_len[i].item())
             )
@@ -224,6 +229,10 @@ class GigaAMASR(GigaAM):
         При diarize=True сегментам и словам присваивается индекс спикера
         (модель Nemotron-3-Diarization; она же определяет речевые области
         для нарезки).
+        Стратегия нарезки задаётся strategy="vad" (речевые области,
+        по умолчанию), strategy="speaker" (разрез по сменам
+        доминирующего спикера, затем склейка в чанки по max/min) или
+        strategy="utterance" (одна реплика = один чанк).
         Возвращает LongformTranscriptionResult с сегментами, содержащими
         опциональные таймстампы на уровне слов и опциональных спикеров.
         """

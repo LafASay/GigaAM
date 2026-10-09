@@ -114,6 +114,129 @@ def validate_segmentation_boundaries(
     }
 
 
+@pytest.mark.parametrize("strategy", ["vad", "speaker", "utterance"])
+def test_segmentation_strategy(long_audio, strategy):
+    """Все стратегии на long_example.wav дают валидные границы и чанки."""
+    from gigaam.segmentation import chunk_speech
+
+    chunks = chunk_speech(long_audio, strategy=strategy)
+
+    assert chunks.boundaries, "Should produce chunk boundaries"
+    duration = max(end for _, end in chunks.boundaries)
+    validation = validate_segmentation_boundaries(chunks.boundaries, duration + 1.0)
+    assert validation["valid"], f"Boundary validation failed: {validation['issues']}"
+    assert len(chunks.segments) == len(chunks.boundaries)
+    logger.info("strategy=%s: %d chunks", strategy, len(chunks.boundaries))
+
+
+def test_utterance_chunks_match_speaker_turns(long_audio):
+    """utterance-стратегия: границы чанков = интервалам доминирующего спикера."""
+    from gigaam.diarization import Diarizer
+    from gigaam.segmentation import chunk_speech
+
+    chunks_vad = chunk_speech(long_audio, strategy="vad")
+    chunks_ut = chunk_speech(long_audio, strategy="utterance")
+
+    turns = Diarizer.speaker_turns(chunks_ut.probs, chunks_ut.frame_shift)
+    assert len(chunks_ut.boundaries) == len(turns)
+    assert chunks_ut.boundaries == turns
+    # utterance не склеивает: чанков не меньше, чем у speaker-стратегии
+    assert len(chunks_ut.boundaries) >= len(chunks_vad.boundaries)
+
+
+def test_utterance_pack_no_degenerate_chunks():
+    """utterance (min_duration=0.0): микро-блипы и регионы за концом аудио
+    не порождают пустых/сверхкоротких чанков (регрессия ZeroDivision)."""
+    import torch
+
+    from gigaam.segmentation import _pack_regions
+
+    sr = 16000
+    audio = torch.zeros(sr * 30)
+    regions = [
+        (0.0, 10.0),  # обычная реплика
+        (10.0, 10.01),  # микро-блит диаризации (0.01 c)
+        (10.5, 20.0),  # обычная реплика
+        (30.5, 31.5),  # регион в паддинге — за концом аудио
+        (29.0, 29.5),  # короткая реплика перед вырожденным регионом
+    ]
+    boundaries: List[Tuple[float, float]] = []
+    segments = _pack_regions(
+        audio,
+        sr,
+        regions,
+        boundaries,
+        max_duration=22.0,
+        min_duration=0.0,
+        strict_limit_duration=30.0,
+        new_chunk_threshold=0.2,
+    )
+
+    assert len(segments) == len(boundaries)
+    for (start, end), seg in zip(boundaries, segments):
+        assert end - start > 0.2, f"too short chunk: {(start, end)}"
+        assert len(seg) > 0, f"empty chunk: {(start, end)}"
+        assert end <= 30.0, f"chunk beyond audio: {(start, end)}"
+    # блит (10.0, 10.01) приклеился к следующей реплике
+    assert (10.0, 20.0) in boundaries
+
+
+@pytest.mark.parametrize("revision", ["v3_ctc"])
+def test_transcribe_longform_utterance(revision, long_audio):
+    """e2e: utterance + word_timestamps не падает на вырожденных чанках."""
+    from gigaam.types import LongformTranscriptionResult
+
+    model = gigaam.load_model(revision)
+    result = model.transcribe_longform(
+        long_audio, strategy="utterance", word_timestamps=True
+    )
+
+    assert isinstance(result, LongformTranscriptionResult)
+    assert len(result.segments) > 0
+    for seg in result.segments:
+        assert seg.text.strip(), f"Empty text for chunk {(seg.start, seg.end)}"
+        assert seg.words, "word_timestamps=True should produce words"
+
+
+def test_speaker_turns_synthetic():
+    """speaker_turns режет по сменам доминирующего спикера, тишина не покрывается."""
+    from gigaam.diarization import Diarizer
+
+    probs = np.array(
+        [
+            [0.9, 0.1],  # spk0
+            [0.8, 0.2],  # spk0
+            [0.2, 0.8],  # spk1
+            [0.1, 0.9],  # spk1
+            [0.1, 0.1],  # тишина
+            [0.9, 0.1],  # spk0
+            [0.9, 0.1],  # spk0
+        ]
+    )
+    turns = Diarizer.speaker_turns(probs, frame_shift=0.01)
+    assert turns == [(0.0, 0.02), (0.02, 0.04), (0.05, 0.07)]
+
+
+def test_merged_speaker_chunks_duration_limits(duration=90.0):
+    """speaker-стратегия: чанки укладываются в strict_limit после склейки кусков."""
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        try:
+            audio = generate_long_audio(duration=duration)
+            sf.write(f.name, audio, 16000)
+
+            from gigaam.segmentation import chunk_speech
+
+            chunks = chunk_speech(f.name, strategy="speaker")
+
+            assert chunks.boundaries, "Speaker strategy should produce chunks"
+            for start, end in chunks.boundaries:
+                assert end - start <= 30.0, f"Chunk too long: {end - start:.2f}s"
+
+        finally:
+            if os.path.exists(f.name):
+                os.remove(f.name)
+
+
 @pytest.mark.parametrize("duration", [30.0, 60.0, 120.0])
 def test_segmentation_functionality(duration):
     """Проверяет сегментацию аудио с разной длительностью"""
